@@ -57,7 +57,7 @@ RUN \
     && pip3 install \
     --no-cache-dir -r /tmp/requirements.txt \
     && pip3 install \
-    --no-cache-dir git+https://github.com/LedFx/LedFx@frontend_beta \
+    --force-reinstall --no-cache-dir git+https://github.com/LedFx/LedFx@frontend_beta \
     && pip3 uninstall python-rtmidi -y \
     && pip3 install \ 
     --no-cache-dir python-rtmidi --install-option="--no-alsa" --install-option="--no-jack" \
