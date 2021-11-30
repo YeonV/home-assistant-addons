@@ -3,7 +3,7 @@ name: ledfx-frontend_YZ
 version: beta
 slug: ledfx-beta
 description: A network based LED effect controller with support for advanced real-time audio effects!
-url: https://github.com/hassio-addons/addon-ledfx
+url: https://github.com/YeonV/ledfx-home-assistant-addon
 #webui: "[PROTO:ssl]://[HOST]:[PORT:80]"
 audio: true
 arch:
