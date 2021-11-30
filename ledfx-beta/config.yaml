@@ -1,5 +1,5 @@
 ---
-name: ledfx-beta
+name: LedFx (beta)
 version: beta35
 slug: ledfx-beta
 description: A network based LED effect controller with support for advanced real-time audio effects!
