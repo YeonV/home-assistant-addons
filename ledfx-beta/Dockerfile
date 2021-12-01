@@ -12,44 +12,49 @@ COPY requirements.txt /tmp/
 ARG BUILD_ARCH
 RUN \
     apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libavformat58 \
-    libasound2-plugins \
-    cython3 \
-    gcc \
-    git \
-    libatlas3-base \
-    zlib1g-dev \
-    portaudio19-dev \
-    python3-dev \
-    python3 \
-    python3-pip \
-    nginx \
+    build-essential=12.9 \
+    libavformat58=7:4.3.2-0+deb11u2 \
+    libasound2-plugins=1.2.2-2 \
+    cython3=0.29.21-3+b1 \
+    gcc=4:10.2.1-1 \
+    git=1:2.30.2-1 \
+    libatlas3-base=3.10.3-10 \
+    zlib1g-dev=1:1.2.11.dfsg-2 \
+    portaudio19-dev=19.6.0-1.1 \
+    python3-dev=3.9.2-3 \
+    python3=3.9.2-3 \
+    python3-pip=20.3.4-4 \
+    nginx=1.18.0-6.1 \
     \
     # Pillow dependencies for dev branch
-    libfreetype6-dev \
-    libfribidi-dev \
-    libharfbuzz-dev \
-    libjpeg-turbo-progs \
-    libjpeg62-turbo-dev \
-    liblcms2-dev \
-    libopenjp2-7-dev \
-    tcl8.6-dev \
-    tk8.6-dev \
-    libtiff5-dev \
+    libfreetype6-dev=2.10.4+dfsg-1 \
+    libfribidi-dev=1.0.8-2 \
+    libharfbuzz-dev=2.7.4-1 \
+    libjpeg-turbo-progs=1:2.0.6-4 \
+    libjpeg62-turbo-dev=1:2.0.6-4 \
+    liblcms2-dev=2.12~rc1-2 \
+    libopenjp2-7-dev=2.4.0-3 \
+    tcl8.6-dev=8.6.11+dfsg-1 \
+    tk8.6-dev=8.6.11-2 \
+    libtiff5-dev=4.2.0-1 \
     \
     # aubio dependencies
-    python3-aubio \
-    aubio-tools \
-    python3-numpy \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswresample-dev \
-    libavresample-dev \
-    libsndfile1-dev \
-    librubberband-dev \
-    libsamplerate0-dev \
+    python3-aubio=0.4.9-4+b4 \
+    aubio-tools=0.4.9-4+b4 \
+    python3-numpy=1:1.19.5-1 \
+    libavcodec58=7:4.3.2-0+deb11u2 \
+    libchromaprint1=1.5.0-2 \
+    libavresample4=7:4.3.2-0+deb11u2 \
+    libavutil56=7:4.3.2-0+deb11u2 \
+    libavcodec-dev=7:4.3.2-0+deb11u2 \
+    libavformat-dev=7:4.3.2-0+deb11u2 \
+    libavutil-dev=7:4.3.2-0+deb11u2 \
+    libswresample-dev=7:4.3.2-0+deb11u2 \
+    libswresample3=7:4.3.2-0+deb11u2 \
+    libavresample-dev=7:4.3.2-0+deb11u2 \
+    libsndfile1-dev=1.0.31-2 \
+    librubberband-dev=1.9.0-1 \
+    libsamplerate0-dev=0.2.1+ds0-1 \
     && rm -fr \
     /var/{cache,log}/* \
     /var/lib/apt/lists/* \
@@ -60,7 +65,7 @@ RUN \
     --no-cache-dir git+https://github.com/LedFx/LedFx@frontend_beta \
     && pip3 uninstall python-rtmidi -y \
     && pip3 install \ 
-    --no-cache-dir python-rtmidi --install-option="--no-alsa" --install-option="--no-jack" \
+    --no-cache-dir "python-rtmidi>=1.4.9" --install-option="--no-alsa" --install-option="--no-jack" \
     \
     && find /usr/local/lib/python3.9/ -type d -name tests -depth -exec rm -rf {} \; \
     && find /usr/local/lib/python3.9/ -type d -name test -depth -exec rm -rf {} \; \
@@ -90,19 +95,24 @@ RUN \
     libtiff5-dev \
     \
     # aubio dependencies 
+    libavcodec58 \
+    libchromaprint1 \
+    libavresample4 \
+    libavutil56 \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
     libswresample-dev \
+    libswresample3 \
     libavresample-dev \
     libsndfile1-dev \
     librubberband-dev \
     libsamplerate0-dev \
     \
     && apt-get update && apt-get install -y --no-install-recommends \
-    python3-aubio \
-    aubio-tools \
-    python3-numpy \
+    python3-aubio=0.4.9-4+b4 \
+    aubio-tools=0.4.9-4+b4 \
+    python3-numpy=1:1.19.5-1 \
     && apt-get clean -y \
     && apt-get autoremove -y \
     && rm -fr \
