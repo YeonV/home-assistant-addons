@@ -113,6 +113,7 @@ RUN \
     python3-aubio=0.4.9-4+b4 \
     aubio-tools=0.4.9-4+b4 \
     python3-numpy=1:1.19.5-1 \
+    libasound2-plugins=1.2.2-2 \
     && apt-get clean -y \
     && apt-get autoremove -y \
     && rm -fr \
