@@ -1,10 +1,9 @@
 ---
 name: LedFx (beta)
-version: beta2
+version: beta3
 slug: ledfx-beta
 description: A network based LED effect controller with support for advanced real-time audio effects!
 url: https://github.com/YeonV/home-assistant-addons/tree/master/ledfx-beta
-#webui: "[PROTO:ssl]://[HOST]:[PORT:80]"
 audio: true
 arch:
   - aarch64
@@ -29,7 +28,6 @@ options:
   ssl: true
   certfile: fullchain.pem
   keyfile: privkey.pem
-  leave_front_door_open: false
 schema:
   log_level: list(trace|debug|info|notice|warning|error|fatal)?
   certfile: str
