@@ -34,4 +34,4 @@ schema:
   keyfile: str
   ssl: bool
   leave_front_door_open: bool?
-image: "ghcr.io/yeonv/{arch}-addon-ledfx-beta"
+image: "ghcr.io/yeonv/{arch}-addon-ledfx"
