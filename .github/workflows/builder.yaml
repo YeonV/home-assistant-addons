@@ -107,6 +107,6 @@ jobs:
             ${{ env.BUILD_ARGS }} \
             --${{ matrix.arch }} \
             --target /data/${{ matrix.addon }} \
-            --image "${{ steps.check.outputs.image }}" \
+ #           --image "${{ steps.check.outputs.image }}" \
             --docker-hub "ghcr.io/${{ github.repository_owner }}" \
             --addon

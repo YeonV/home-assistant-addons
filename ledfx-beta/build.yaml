@@ -11,4 +11,3 @@ labels:
   org.opencontainers.image.description: "A network based LED effect controller with support for advanced real-time audio effects!"
   org.opencontainers.image.source: "https://github.com/YeonV/home-assistant-addons/tree/master/ledfx-beta"
   org.opencontainers.image.licenses: "MIT"
-image: "ghcr.io/yeonv/{arch}-addon-ledfx-beta"
