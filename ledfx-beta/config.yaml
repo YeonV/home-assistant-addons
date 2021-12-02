@@ -15,7 +15,7 @@ hassio_api: true
 auth_api: true
 ingress: true
 ingress_stream: true
-ingress_port: 8888
+ingress_port: 8989
 panel_icon: mdi:emoticon-devil-outline
 panel_title: LedFx
 map:
