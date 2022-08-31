@@ -19,6 +19,7 @@ ingress_port: 8989
 ingress_entry: "#/./"
 panel_icon: mdi:emoticon-devil-outline
 panel_title: LedFx
+init: false
 map:
   - ssl
 ports:
