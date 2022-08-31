@@ -1,8 +1,9 @@
-#!/usr/bin/with-contenv bashio
+#!/command/with-contenv bashio
 # ==============================================================================
-# Home Assistant Community Add-on: Ledfx
+# Home Assistant Community Add-on: ledfx
 # Configures NGINX
 # ==============================================================================
+declare admin_port
 
 # Generate Ingress configuration
 bashio::var.json \

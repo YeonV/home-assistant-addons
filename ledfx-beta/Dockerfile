@@ -28,6 +28,7 @@ RUN \
     python3=3.9.2-3 \
     python3-pip=20.3.4-4+deb11u1 \
     nginx=1.18.0-6.1+deb11u2 \
+    unzip=6.0-26+deb11u1 \
     \
     # Pillow dependencies for dev branch
     libfreetype6-dev=2.10.4+dfsg-1+deb11u1 \
@@ -65,7 +66,14 @@ RUN \
     && pip3 install \
     --no-cache-dir -r /tmp/requirements.txt \
     && pip3 install \
-    --no-cache-dir git+https://github.com/LedFx/LedFx@bde9002f8dfc450bc95e6a72c3613fe992f27e7f \
+    --no-cache-dir git+https://github.com/LedFx/LedFx@666660c43e60ab185d479840b2c3bedc28ccc048 \
+    && pip3 uninstall python-rtmidi -y \
+    && pip3 install \ 
+    --no-cache-dir "python-rtmidi>=1.4.9" --install-option="--no-alsa" --install-option="--no-jack" \
+    \
+    && rm -rf /usr/local/lib/python3.9/dist-packages/ledfx_frontend \
+    && curl -L --max-redirs 10 -o ledfx_frontend_hass.zip https://github.com/YeonV/LedFx-Frontend-v2/releases/latest/download/ledfx_frontend_hass.zip \
+    && unzip ledfx_frontend_hass.zip && cp -r ledfx_frontend_hass /usr/local/lib/python3.9/dist-packages/ledfx_frontend \
     \
     && find /usr/local/lib/python3.9/ -type d -name tests -depth -exec rm -rf {} \; \
     && find /usr/local/lib/python3.9/ -type d -name test -depth -exec rm -rf {} \; \
@@ -108,15 +116,13 @@ RUN \
     libsndfile1-dev \
     librubberband-dev \
     libsamplerate0-dev \
+    unzip \
     \
     && apt-get update && apt-get install -y --no-install-recommends \
     python3-aubio=0.4.9-4+b4 \
     aubio-tools=0.4.9-4+b4 \
     python3-numpy=1:1.19.5-1 \
     libasound2-plugins=1.2.2-2 \
-    libasound2-dev=1.2.4-1.1 \
-    libjack-dev=1:0.125.0-3+b1 \
-    python3-rtmidi=1.4.7-1 \
     && apt-get clean -y \
     && apt-get autoremove -y \
     && rm -fr \
