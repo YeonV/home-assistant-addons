@@ -30,11 +30,16 @@ server {
     }
     
     location / {
+        {{ if .ssl }}
+        proxy_set_header Accept-Encoding "";
+    	sub_filter 'ws://' 'wss://';
+    	sub_filter_types application/javascript;
+        sub_filter_once off;
+        {{ end }}
         {{ if not .leave_front_door_open }}
         auth_request /authentication;
         auth_request_set $auth_status $upstream_status;
         {{ end }}
-
-        proxy_pass http://backend;
+        proxy_pass http://backend/#/./;
     }
 }
