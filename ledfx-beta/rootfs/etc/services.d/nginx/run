@@ -5,7 +5,8 @@
 # ==============================================================================
 
 # Wait for ttyd to become available
-s6-svwait -u -t 5000 /var/run/s6/services/ledfx
+#s6-svwait -u -t 5000 /var/run/s6/services/ledfx
+bashio::net.wait_for 8888 127.0.0.1 5000
 
 bashio::log.info "Starting NGinx..."
 
