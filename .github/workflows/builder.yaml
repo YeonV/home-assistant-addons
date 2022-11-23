@@ -5,9 +5,9 @@ env:
   MONITORED_FILES: "build.yaml config.yaml Dockerfile rootfs"
 
 on:
-  push:
-    branches:
-      - master
+#  push:
+#    branches:
+#      - master
   pull_request:
     branches:
       - master
@@ -19,8 +19,19 @@ on:
        default: '2.0.55'
        required: false
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    name: Set Version
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+      - name: set version
+        run: |
+          sed -i 's/\bversion: .*\b/version: ${{ github.event.inputs.version }}/' ./ledfx-beta/config.yaml
+      - uses: EndBug/add-and-commit@v9
   init:
     runs-on: ubuntu-latest
+    needs: version
     name: Initialize builds
     outputs:
       changed_addons: ${{ steps.changed_addons.outputs.addons }}
@@ -28,9 +39,6 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
-      - name: set version
-        run: |
-          sed -i 's/\bversion: .*\b/version: ${{ github.event.inputs.version }}/' ./ledfx-beta/config.yaml
       - name: Get changed files
         id: changed_files
         uses: jitterbit/get-changed-files@v1
