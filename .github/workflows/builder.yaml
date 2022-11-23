@@ -12,7 +12,12 @@ on:
     branches:
       - master
   workflow_dispatch:
-    # Inputs the workflow accepts.    
+    # Inputs the workflow accepts.
+    inputs:
+      version:
+       description: 'Version'
+       default: '2.0.55'
+       required: false
 jobs:
   init:
     runs-on: ubuntu-latest
