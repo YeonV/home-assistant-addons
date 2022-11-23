@@ -5,12 +5,6 @@ env:
   MONITORED_FILES: "build.yaml config.yaml Dockerfile rootfs"
 
 on:
-#  push:
-#    branches:
-#      - master
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
     # Inputs the workflow accepts.
     inputs:
