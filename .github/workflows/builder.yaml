@@ -39,40 +39,7 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
-      - name: Get changed files
-        id: changed_files
-        uses: jitterbit/get-changed-files@v1
-        
 
-      - name: Find add-on directories
-        id: addons
-        uses: home-assistant/actions/helpers/find-addons@master
-
-      - name: Get changed add-ons
-        id: changed_addons
-        run: |
-          declare -a changed_addons
-          for addon in ${{ steps.addons.outputs.addons }}; do
-            if [[ "${{ steps.changed_files.outputs.all }}" =~ $addon ]]; then
-              for file in ${{ env.MONITORED_FILES }}; do
-                  if [[ "${{ steps.changed_files.outputs.all }}" =~ $addon/$file ]]; then
-                    if [[ ! "${changed_addons[@]}" =~ $addon ]]; then
-                      changed_addons+=("\"${addon}\",");
-                    fi
-                  fi
-              done
-            fi
-          done
-
-          changed=$(echo ${changed_addons[@]} | rev | cut -c 2- | rev)
-
-          if [[ -n ${changed} ]]; then
-            echo "Changed add-ons: $changed";
-            echo "::set-output name=changed::true";
-            echo "::set-output name=addons::[$changed]";
-          else
-            echo "No add-on had any monitored files changed (${{ env.MONITORED_FILES }})";
-          fi
   build:
     needs: init
     runs-on: ubuntu-latest
@@ -80,7 +47,8 @@ jobs:
     name: Build ${{ matrix.arch }} ${{ matrix.addon }} add-on
     strategy:
       matrix:
-        addon: ${{ fromJson(needs.init.outputs.changed_addons) }}
+        addon: 
+          - ledfx-beta
         arch: ["aarch64", "amd64", "armhf", "armv7", "i386"]
 
 
