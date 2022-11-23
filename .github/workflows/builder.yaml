@@ -41,8 +41,7 @@ jobs:
     name: Build ${{ matrix.arch }} ${{ matrix.addon }} add-on
     strategy:
       matrix:
-        addon: 
-          - ledfx-beta
+        addon: ["ledfx-beta"]
         arch: ["aarch64", "amd64", "armhf", "armv7", "i386"]
 
 
