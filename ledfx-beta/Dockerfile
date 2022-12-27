@@ -65,8 +65,8 @@ RUN \
     \
     && pip3 install \
     --no-cache-dir -r /tmp/requirements.txt \
-    && pip3 install \
-    --no-cache-dir git+https://github.com/LedFx/LedFx \
+#    && pip3 install \
+#    --no-cache-dir git+https://github.com/LedFx/LedFx \
     \
     && rm -rf /usr/local/lib/python3.9/dist-packages/ledfx_frontend \
     && curl -L --max-redirs 10 -o ledfx_frontend_hass.zip https://github.com/YeonV/LedFx-Frontend-v2/releases/latest/download/ledfx_frontend_hass.zip \
