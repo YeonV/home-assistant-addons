@@ -47,6 +47,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
+      - name: set version
+        run: |
+          sed -i 's/\bversion: .*\b/version: ${{ github.event.inputs.version }}/' ./ledfx-beta/config.yaml
+
       - name: Get information
         id: info
         uses: home-assistant/actions/helpers/info@master
