@@ -20,7 +20,7 @@ RUN \
     libasound2-plugins=1.2.2-2 \
     cython3=0.29.21-3+b1 \
     gcc=4:10.2.1-1 \
-    git=1:2.30.2-1 \
+    git=1:2.30.2-1+deb11u2 \
     libatlas3-base=3.10.3-10 \
     zlib1g-dev=1:1.2.11.dfsg-2+deb11u2 \
     portaudio19-dev=19.6.0-1.1 \
@@ -40,7 +40,7 @@ RUN \
     libopenjp2-7-dev=2.4.0-3 \
     tcl8.6-dev=8.6.11+dfsg-1 \
     tk8.6-dev=8.6.11-2 \
-    libtiff5-dev=4.2.0-1+deb11u1 \
+    libtiff5-dev=4.2.0-1+deb11u4 \
     \
     # aubio dependencies
     python3-aubio=0.4.9-4+b4 \
