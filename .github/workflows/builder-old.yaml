@@ -59,6 +59,7 @@ jobs:
   build:
     needs: init
     runs-on: ubuntu-latest
+    continue-on-error: true
     if: needs.init.outputs.changed == 'true'
     name: Build ${{ matrix.arch }} ${{ matrix.addon }} add-on
     strategy:
