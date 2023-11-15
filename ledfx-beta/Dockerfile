@@ -16,7 +16,7 @@ ARG BUILD_ARCH
 RUN \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential=12.9 \
-    libavformat58=7:4.3.5-0+deb11u1 \
+    libavformat58=7:4.3.6-0+deb11u1 \
     libasound2-plugins=1.2.2-2 \
     cython3=0.29.21-3+b1 \
     gcc=4:10.2.1-1 \
@@ -46,16 +46,16 @@ RUN \
     python3-aubio=0.4.9-4+b4 \
     aubio-tools=0.4.9-4+b4 \
     python3-numpy=1:1.19.5-1 \
-    libavcodec58=7:4.3.5-0+deb11u1 \
+    libavcodec58=7:4.3.6-0+deb11u1 \
     libchromaprint1=1.5.0-2 \
-    libavresample4=7:4.3.5-0+deb11u1 \
-    libavutil56=7:4.3.5-0+deb11u1 \
-    libavcodec-dev=7:4.3.5-0+deb11u1 \
-    libavformat-dev=7:4.3.5-0+deb11u1 \
-    libavutil-dev=7:4.3.5-0+deb11u1 \
-    libswresample-dev=7:4.3.5-0+deb11u1 \
-    libswresample3=7:4.3.5-0+deb11u1 \
-    libavresample-dev=7:4.3.5-0+deb11u1 \
+    libavresample4=7:4.3.6-0+deb11u1 \
+    libavutil56=7:4.3.6-0+deb11u1 \
+    libavcodec-dev=7:4.3.6-0+deb11u1 \
+    libavformat-dev=7:4.3.6-0+deb11u1 \
+    libavutil-dev=7:4.3.6-0+deb11u1 \
+    libswresample-dev=7:4.3.6-0+deb11u1 \
+    libswresample3=7:4.3.6-0+deb11u1 \
+    libavresample-dev=7:4.3.6-0+deb11u1 \
     libsndfile1-dev=1.0.31-2 \
     librubberband-dev=1.9.0-1 \
     libsamplerate0-dev=0.2.1+ds0-1 \
