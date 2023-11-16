@@ -1,8 +1,8 @@
 server {
     {{ if not .ssl }}
-    listen 80 default_server;
+    listen {{ .port }} default_server;
     {{ else }}
-    listen 80 default_server ssl http2;
+    listen {{ .port }} default_server ssl http2;
     {{ end }}
 
     include /etc/nginx/includes/server_params.conf;
