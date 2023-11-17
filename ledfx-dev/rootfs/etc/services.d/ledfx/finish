@@ -1,0 +1,11 @@
+#!/command/with-contenv bashio
+# ==============================================================================
+# Home Assistant Community Add-on: ledfx
+# Take down the S6 supervision tree when LedFx fails
+# ==============================================================================
+if [[ "${1}" -ne 0 ]] && [[ "${1}" -ne 256 ]]; then
+  bashio::log.warning "LedFx crashed, halting add-on"
+  /run/s6/basedir/bin/halt
+fi
+
+bashio::log.info "LedFx stoped, restarting..."

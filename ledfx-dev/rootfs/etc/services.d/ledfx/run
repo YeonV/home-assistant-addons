@@ -1,0 +1,15 @@
+#!/command/with-contenv bashio
+# ==============================================================================
+# Home Assistant Community Add-on: ledfx
+# Runs ledfx
+# ==============================================================================
+
+bashio::log.red \
+        '-----------------------------------------------------------'
+bashio::log.red  "LedFx backend host $(bashio::addon.ingress_url)"
+bashio::log.red \
+        '-----------------------------------------------------------'
+        
+bashio::log.info "Starting ledfx..."
+
+exec ledfx --offline --config /data/ledfx
