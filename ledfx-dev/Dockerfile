@@ -20,6 +20,7 @@ RUN \
     pkgconf=2.1.0-r0 \
     git=2.43.5-r0 \
     cmake=3.27.8-r0 \
+    mbedtls=2.28.9-r0 \
     && apk add --no-cache \
     alsa-plugins-pulse=1.2.7.1-r2 \
     nginx=1.24.0-r16 \
