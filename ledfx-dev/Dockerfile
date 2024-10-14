@@ -20,11 +20,11 @@ RUN \
     pkgconf=2.1.0-r0 \
     git=2.43.5-r0 \
     cmake=3.27.8-r0 \
-    mbedtls=2.28.9-r0 \
     mbedtls-dev=2.28.9-r0 \
     && apk add --no-cache \
     alsa-plugins-pulse=1.2.7.1-r2 \
     nginx=1.24.0-r16 \
+    mbedtls=2.28.9-r0 \
     portaudio-dev=19.7.0-r2 \
     pulseaudio-alsa=16.1-r11 \
     pulseaudio-utils=16.1-r11 \
