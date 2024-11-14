@@ -1,0 +1,5 @@
+pkgconfig>=1.5.5
+setuptools>=69.0.3
+wheel>=0.36.2
+numpy~=1.23
+ledfx==2.0.105

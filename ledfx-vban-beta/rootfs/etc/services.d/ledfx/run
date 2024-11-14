@@ -1,0 +1,35 @@
+#!/command/with-contenv bashio
+# ==============================================================================
+# Home Assistant Community Add-on: ledfx
+# Runs ledfx
+# ==============================================================================
+declare -a options
+
+options+=(--config /config)
+
+bashio::log.red \
+        '-----------------------------------------------------------'
+bashio::log.red  "LedFx backend host $(bashio::addon.ingress_url)"
+bashio::log.red \
+        '-----------------------------------------------------------'
+
+        
+bashio::log.info "Starting ledfx..."
+
+# Find the matching AirSonos log level
+if bashio::config.exists 'log_level'; then
+    case "$(bashio::string.lower "$(bashio::config 'log_level')")" in
+        debug)
+            options+=(-vv)
+            ;;
+        info)
+            options+=(-v)
+            ;;
+        warning)
+            options+=()
+            ;;
+    esac
+fi
+
+
+exec ledfx --host 127.0.0.1 --offline "${options[@]}"
