@@ -45,4 +45,4 @@ schema:
   keyfile: str
   ssl: bool
   leave_front_door_open: bool?
- image: "ghcr.io/yeonv/{arch}-addon-ledfx-vban"
+image: "ghcr.io/yeonv/{arch}-addon-ledfx-vban"
