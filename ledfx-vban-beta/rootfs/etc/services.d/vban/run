@@ -1,0 +1,38 @@
+#!/command/with-contenv bashio
+# ==============================================================================
+# Home Assistant Community Add-on: ledfx
+# Runs vban_receptor
+# ==============================================================================
+declare -a options
+
+options+=(--ipaddress="$(bashio::config 'ip')" --streamname="$(bashio::config 'stream_name')")
+        
+bashio::log.info "Starting vban_receptor..."
+
+if bashio::config.exists 'backend'; then
+    options+=(--backend="$(bashio::config 'backend')")
+fi
+
+# Find the matching log level
+if bashio::config.exists 'vban_log_level'; then
+    case "$(bashio::string.lower "$(bashio::config 'vban_log_level')")" in
+        debug)
+            options+=(--loglevel=4)
+            ;;
+        info)
+            options+=(--loglevel=3)
+            ;;
+        warning)
+            options+=(--loglevel=2)
+            ;;
+        error)
+            options+=(--loglevel=1)
+            ;;
+        fatal)
+            options+=(--loglevel=0)
+            ;;
+    esac
+fi
+
+
+exec vban_receptor --port=6980 "${options[@]}"

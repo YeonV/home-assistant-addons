@@ -1,0 +1,48 @@
+---
+name: LedFx Addon
+version: 2.0.105
+slug: ledfx-vban-beta
+description: A network based LED effect controller with support for advanced real-time audio effects!
+url: https://github.com/YeonV/home-assistant-addons/tree/master/ledfx-beta
+audio: true
+arch:
+  - aarch64
+  - amd64
+  - armv7
+hassio_api: true
+auth_api: true
+ingress: true
+host_network: true
+host_dbus: true
+ingress_stream: true
+ingress_port: 0
+ingress_entry: "#/./"
+panel_icon: mdi:emoticon-devil-outline
+panel_title: LedFx
+init: false
+map:
+  - ssl
+  - addon_config:rw
+ports:
+  80/tcp: null
+  6980/udp: 6980
+ports_description:
+  80/tcp: Web interface
+options:
+  ssl: true
+  log_level: warning
+  vban_log_level: warning
+  backend: pulseaudio
+  certfile: fullchain.pem
+  keyfile: privkey.pem
+schema:
+  log_level: list(debug|info|warning)?
+  vban_log_level: list(debug|info|warning|error|fatal)?
+  ip: str
+  stream_name: str
+  backend: list(alsa|pulseaudio)?
+  certfile: str
+  keyfile: str
+  ssl: bool
+  leave_front_door_open: bool?
+ image: "ghcr.io/yeonv/{arch}-addon-ledfx-vban"
