@@ -1,6 +1,6 @@
 ---
 name: LedFx Addon-dev
-version: 2.0.104-dev
+version: 2.0.107-dev
 slug: ledfx-beta-dev
 description: A network based LED effect controller with support for advanced real-time audio effects!
 url: https://github.com/YeonV/home-assistant-addons/tree/master/ledfx-dev

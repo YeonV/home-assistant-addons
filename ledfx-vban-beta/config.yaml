@@ -1,6 +1,6 @@
 ---
 name: LedFx Addon VBAN
-version: 2.0.105
+version: 2.0.107
 slug: ledfx-vban-beta
 description: A network based LED effect controller with support for advanced real-time audio effects!
 url: https://github.com/YeonV/home-assistant-addons/tree/master/ledfx-beta
