@@ -32,7 +32,7 @@ ARG BUILD_ARCH
 RUN \
     apk add --no-cache --virtual .build-dependencies \
     build-base=0.5-r3 \
-    ninja-build=1.11.1-r4\
+    samurai=1.2-r5\
     linux-headers=6.5-r0 \
     alsa-lib-dev=1.2.10-r0 \
     pkgconf=2.1.0-r0 \
