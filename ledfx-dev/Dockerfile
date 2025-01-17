@@ -18,7 +18,7 @@ RUN \
     linux-headers=6.5-r0 \
     alsa-lib-dev=1.2.10-r0 \
     pkgconf=2.1.0-r0 \
-    git=2.43.5-r0 \
+    git=2.43.6-r0 \
     cmake=3.27.8-r0 \
     mbedtls-dev=2.28.9-r0 \
     && apk add --no-cache \
