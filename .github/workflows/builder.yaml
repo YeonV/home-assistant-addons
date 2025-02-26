@@ -85,7 +85,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build ${{ matrix.addon }} add-on
-        uses: home-assistant/builder@2024.08.2
+        uses: home-assistant/builder@2025.02.0
         with:
           args: |
             ${{ env.BUILD_ARGS }} \
