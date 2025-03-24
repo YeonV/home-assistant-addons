@@ -25233,7 +25233,6 @@ ${err.stack}`);
     sock.close();
   });
   ee.on("discover", async (rinfo, dev) => {
-    var _a2;
     if (devicesDiscovered[dev.devId]) {
       logger.info(`Camera ${dev.devId} at ${rinfo.address} already discovered, ignoring`);
     } else {
@@ -25241,53 +25240,11 @@ ${err.stack}`);
       logger.info(`Debug: ${process.env.SUPERVISOR_API}`);
       logger.info(`Discovered new camera: ${dev.devId} at ${rinfo.address}`);
       logger.info("To use this camera in Home Assistant, add MJPEG Camera integration with the following settings:");
-      logger.info(`MJPEG URL:       http://[HOMEASSISTANT_LOCAL_IP]:5000/camera/${dev.devId}`);
-      logger.info(`Still Image URL: http://[HOMEASSISTANT_LOCAL_IP]:5000/camera/${dev.devId}`);
+      logger.info(`MJPEG URL:       http://localhost:5000/camera/${dev.devId}`);
+      logger.info(`Still Image URL: http://localhost:5000/camera/${dev.devId}`);
       logger.info("Username:        (leave blank)");
       logger.info("Password:        (leave blank)");
       logger.info("Verify SSL:      No");
-      logger.info("Note: Replace [HOMEASSISTANT_LOCAL_IP] with the local IP address of your Home Assistant instance.");
-      const entityId = `camera.${dev.devId}`;
-      const homeAssistantIP = "192.168.1.47";
-      const homeAssistantIP2 = ((_a2 = process.env.SUPERVISOR_API) == null ? void 0 : _a2.replace("http://", "").replace("/api", "")) || "localhost";
-      console.log("Home Assistant IP2:", homeAssistantIP2);
-      console.log("SUPERVISOR_API:", process.env.SUPERVISOR_TOKEN);
-      console.log("Home Assistant IP:", homeAssistantIP);
-      const cameraState = {
-        state: "idle",
-        // Default state
-        attributes: {
-          friendly_name: `Camera ${dev.devId}`,
-          mjpeg_url: `http://${homeAssistantIP}:5000/camera/${dev.devId}`,
-          // MJPEG stream URL
-          still_image_url: `http://${homeAssistantIP}:5000/camera/${dev.devId}`,
-          // Still image URL
-          username: "",
-          // Optional: Add username if required
-          password: "",
-          // Optional: Add password if required
-          verify_ssl: false
-          // Optional: Set to true if using HTTPS with a valid certificate
-        }
-      };
-      try {
-        const response = await fetch(`http://supervisor/api/states/${entityId}`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${process.env.HASSIO_TOKEN}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(cameraState)
-        });
-        if (response.ok) {
-          logger.info(`Successfully created entity: ${entityId}`);
-        } else {
-          const error = await response.text();
-          logger.error(`Failed to create entity: ${entityId}. Error: ${error}`);
-        }
-      } catch (err) {
-        logger.error(`Error creating entity: ${entityId}. ${err.message}`);
-      }
     }
   });
   return ee;
