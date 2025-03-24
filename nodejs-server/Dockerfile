@@ -10,5 +10,8 @@ COPY bin.cjs .
 # Expose the port your server listens on
 EXPOSE 5000
 
+# Set environment variables
+ENV SUPERVISOR=SUPERVISOR_API
+
 # Run the prebuilt file
 CMD ["node", "bin.cjs", "http_server"]
