@@ -25232,12 +25232,48 @@ ${err.stack}`);
     }
     sock.close();
   });
-  ee.on("discover", (rinfo, dev) => {
+  ee.on("discover", async (rinfo, dev) => {
     if (devicesDiscovered[dev.devId]) {
       logger.info(`Camera ${dev.devId} at ${rinfo.address} already discovered, ignoring`);
     } else {
       devicesDiscovered[dev.devId] = true;
       logger.info(`Discovered new camera: ${dev.devId} at ${rinfo.address}`);
+      const entityId = `camera.${dev.devId}`;
+      const cameraState = {
+        state: "idle",
+        // Default state
+        attributes: {
+          friendly_name: `Camera ${dev.devId}`,
+          mjpeg_url: `http://${rinfo.address}:5000/camera/${dev.devId}`,
+          // MJPEG stream URL
+          still_image_url: `http://${rinfo.address}:5000/camera/${dev.devId}`,
+          // Still image URL
+          username: "",
+          // Optional: Add username if required
+          password: "",
+          // Optional: Add password if required
+          verify_ssl: false
+          // Optional: Set to true if using HTTPS with a valid certificate
+        }
+      };
+      try {
+        const response = await fetch(`${process.env.SUPERVISOR_API}/api/states/${entityId}`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.HASSIO_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(cameraState)
+        });
+        if (response.ok) {
+          logger.info(`Successfully created entity: ${entityId}`);
+        } else {
+          const error = await response.text();
+          logger.error(`Failed to create entity: ${entityId}. Error: ${error}`);
+        }
+      } catch (err) {
+        logger.error(`Error creating entity: ${entityId}. ${err.message}`);
+      }
     }
   });
   return ee;
