@@ -1,5 +1,5 @@
 name: Node.js Server
-version: 1.1.3
+version: 1.1.4
 slug: nodejs_server
 description: A custom Node.js server for Home Assistant.
 url: https://github.com/YeonV/home-assistant-addons/tree/master/nodejs-server

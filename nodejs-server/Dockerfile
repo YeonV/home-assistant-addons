@@ -11,4 +11,4 @@ COPY bin.cjs .
 EXPOSE 5000
 
 # Run the prebuilt file
-CMD ["node", "bin.cjs"]
+CMD ["node", "bin.cjs", "http_server"]
