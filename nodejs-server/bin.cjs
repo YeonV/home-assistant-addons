@@ -25233,16 +25233,14 @@ ${err.stack}`);
     sock.close();
   });
   ee.on("discover", async (rinfo, dev) => {
-    var _a2;
     if (devicesDiscovered[dev.devId]) {
       logger.info(`Camera ${dev.devId} at ${rinfo.address} already discovered, ignoring`);
     } else {
       devicesDiscovered[dev.devId] = true;
       logger.info(`Discovered new camera: ${dev.devId} at ${rinfo.address}`);
       const entityId = `camera.${dev.devId}`;
-      const homeAssistantIP = ((_a2 = process.env.SUPERVISOR_API) == null ? void 0 : _a2.replace("http://", "").replace("/api", "")) || "localhost";
+      const homeAssistantIP = "192.168.1.47";
       console.log("SUPERVISOR_API:", process.env.SUPERVISOR_API);
-      console.log("HASSIO_TOKEN:", process.env.HASSIO_TOKEN);
       console.log("Home Assistant IP:", homeAssistantIP);
       const cameraState = {
         state: "idle",
