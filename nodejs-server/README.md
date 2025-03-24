@@ -6,7 +6,7 @@ This add-on runs a custom Node.js server for Home Assistant.
 
 - Prebuilt Node.js server (`bin.cjs`)
 - Automatically starts with Home Assistant
-- Exposes port `3000` for communication
+- Exposes port `5000` for communication
 
 ## Installation
 
