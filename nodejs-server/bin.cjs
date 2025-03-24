@@ -25260,7 +25260,7 @@ ${err.stack}`);
         }
       };
       try {
-        const response = await fetch(`${process.env.SUPERVISOR_API || "http://localhost:8123"}/api/states/${entityId}`, {
+        const response = await fetch(`${process.env.SUPERVISOR_API || "https://localhost:8123"}/api/states/${entityId}`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${process.env.HASSIO_TOKEN}`,
