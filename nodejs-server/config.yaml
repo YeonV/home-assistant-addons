@@ -13,4 +13,4 @@ ports:
   5000/tcp: 5000
 options: {}
 schema: {}
-image: ghcr.io/YeonV/nodejs-server
+image: ghcr.io/YeonV/{arch}-nodejs-server
