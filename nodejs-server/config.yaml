@@ -5,7 +5,7 @@ description: A custom Node.js server for Home Assistant.
 url: https://github.com/YeonV/home-assistant-addons/tree/master/nodejs-server
 arch:
   - armv7
-  - arm64
+  - aarch64
   - amd64
 startup: application
 boot: auto
