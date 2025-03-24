@@ -25274,7 +25274,7 @@ ${err.stack}`);
         const response = await fetch(`http://supervisor/api/states/${entityId}`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${process.env.SUPERVISOR_TOKEN}`,
+            "Authorization": `Bearer ${process.env.HASSIO_TOKEN}`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify(cameraState)
