@@ -25248,6 +25248,7 @@ ${err.stack}`);
       const cameraState = {
         state: "idle",
         attributes: {
+          unique_id: dev.devId,
           friendly_name: `Camera ${dev.devId}`,
           mjpeg_url: `http://localhost:5000/camera/${dev.devId}`,
           still_image_url: `http://localhost:5000/camera/${dev.devId}`,
