@@ -1,5 +1,5 @@
 name: Camera Handler
-version: 1.1.14
+version: 1.1.15
 slug: nodejs_server
 description: A custom Node.js server for Home Assistant.
 url: https://github.com/YeonV/home-assistant-addons/tree/master/nodejs-server
@@ -8,6 +8,7 @@ arch:
   - aarch64
   - amd64
 ingress: true
+homeassistant_api: true
 hassio_api: true
 hassio_role: default
 host_network: true

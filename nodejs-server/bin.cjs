@@ -25237,7 +25237,6 @@ ${err.stack}`);
       logger.info(`Camera ${dev.devId} at ${rinfo.address} already discovered, ignoring`);
     } else {
       devicesDiscovered[dev.devId] = true;
-      logger.info(`Debug: ${process.env.SUPERVISOR_API}`);
       logger.info(`Discovered new camera: ${dev.devId} at ${rinfo.address}`);
       logger.info("To use this camera in Home Assistant, add MJPEG Camera integration with the following settings:");
       logger.info(`MJPEG URL:       http://localhost:5000/camera/${dev.devId}`);
@@ -25245,6 +25244,36 @@ ${err.stack}`);
       logger.info("Username:        (leave blank)");
       logger.info("Password:        (leave blank)");
       logger.info("Verify SSL:      No");
+      const entityId = `camera.${dev.devId}`;
+      const cameraState = {
+        state: "idle",
+        attributes: {
+          friendly_name: `Camera ${dev.devId}`,
+          mjpeg_url: `http://localhost:5000/camera/${dev.devId}`,
+          still_image_url: `http://localhost:5000/camera/${dev.devId}`,
+          username: "",
+          password: "",
+          verify_ssl: false
+        }
+      };
+      try {
+        const response = await fetch(`http://supervisor/core/api/states/${entityId}`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${process.env.SUPERVISOR_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(cameraState)
+        });
+        if (response.ok) {
+          logger.info(`Successfully created entity: ${entityId}`);
+        } else {
+          const error = await response.text();
+          logger.error(`Failed to create entity: ${entityId}. Error: ${error}`);
+        }
+      } catch (err) {
+        logger.error(`Error creating entity: ${entityId}. ${err.message}`);
+      }
     }
   });
   return ee;
