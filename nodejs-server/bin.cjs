@@ -25258,14 +25258,13 @@ ${err.stack}`);
           verify_ssl: false
         }
       };
+      console.log(cameraState);
       try {
         const response = await fetch(`http://supervisor/core/api/states/${entityId}`, {
-          method: "POST",
+          method: "DELETE",
           headers: {
-            "Authorization": `Bearer ${process.env.SUPERVISOR_TOKEN}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(cameraState)
+            "Authorization": `Bearer ${process.env.SUPERVISOR_TOKEN}`
+          }
         });
         if (response.ok) {
           logger.info(`Successfully created entity: ${entityId}`);
