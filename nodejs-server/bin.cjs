@@ -25247,9 +25247,9 @@ ${err.stack}`);
       const entityId = `camera.${dev.devId}`;
       const cameraState = {
         state: "idle",
-        unique_id: dev.devId,
+        unique_id: dev.devId + "y",
         attributes: {
-          // unique_id: dev.devId,
+          unique_id: dev.devId + "yz",
           friendly_name: `Camera ${dev.devId}`,
           mjpeg_url: `http://localhost:5000/camera/${dev.devId}`,
           still_image_url: `http://localhost:5000/camera/${dev.devId}`,
@@ -25261,10 +25261,12 @@ ${err.stack}`);
       console.log(cameraState);
       try {
         const response = await fetch(`http://supervisor/core/api/states/${entityId}`, {
-          method: "DELETE",
+          method: "POST",
           headers: {
-            "Authorization": `Bearer ${process.env.SUPERVISOR_TOKEN}`
-          }
+            "Authorization": `Bearer ${process.env.SUPERVISOR_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(cameraState)
         });
         if (response.ok) {
           logger.info(`Successfully created entity: ${entityId}`);
