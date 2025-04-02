@@ -29,7 +29,7 @@ WORKDIR /usr/src/app
 
 # Copy the prebuilt file and the run script
 COPY bin.cjs .
-COPY run.sh /
+COPY run.sh .
 
 # Make run.sh executable
 RUN chmod a+x /run.sh
