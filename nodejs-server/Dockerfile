@@ -6,16 +6,17 @@ FROM ${BUILD_FROM}
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# --- Explicitly install Node.js v18 ---
+# --- Explicitly install Node.js v18 AND npm ---
 # Install specific Node.js v18 available in Alpine 3.18 repos for aarch64
-# This version (18.20.1-r0) was identified from previous apk error messages
+# AND explicitly install npm alongside it.
 RUN \
     echo "Updating apk cache..." \
     && apk update \
-    && echo "Attempting to install nodejs 18.20.1-r0..." \
+    && echo "Attempting to install nodejs 18.20.1-r0 and npm..." \
     && apk add --no-cache \
         nodejs=18.20.1-r0 \
-    && echo "Node.js installation command finished." \
+        npm \
+    && echo "Node.js and npm installation command finished." \
     && echo "Verifying Node version:" \
     && node -v \
     && echo "Verifying NPM version:" \
