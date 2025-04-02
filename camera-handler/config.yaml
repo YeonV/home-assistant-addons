@@ -1,13 +1,13 @@
-name: Camera Handler deprecated
-version: 1.1.47
-slug: nodejs_server
+name: Camera Handler
+version: 0.0.1
+slug: camera_handler
 description: A custom Node.js server for Home Assistant.
-url: https://github.com/YeonV/home-assistant-addons/tree/master/nodejs-server
+url: https://github.com/YeonV/home-assistant-addons/tree/master/camera-handler
 arch:
   - armv7
   - aarch64
   - amd64
-stage: deprecated
+stage: stable
 ingress: true
 homeassistant_api: true
 hassio_api: true
@@ -25,4 +25,4 @@ startup: application
 boot: manual
 options: {}
 schema: {}
-image: ghcr.io/yeonv/{arch}-nodejs-server
+image: ghcr.io/yeonv/{arch}-camera-handler
