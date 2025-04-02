@@ -1,17 +1,14 @@
-# Node.js Server Add-on for Home Assistant
+# Camera Handler Add-on for Home Assistant
 
-This add-on runs a custom Node.js server for Home Assistant.
+This add-on runs a modified [camera-reverse](https://github.com/DavidVentura) server inside HomeAssistant
 
-## Features
+![Image](https://github.com/user-attachments/assets/c7bad93d-54cb-4362-87cb-1767461c05ce)
 
-- Prebuilt Node.js server (`bin.cjs`)
-- Automatically starts with Home Assistant
-- Exposes port `5000` for communication
 
 ## Installation
 
 1. Add this repository to your Home Assistant Add-on Store.
-2. Install the "Node.js Server" add-on.
+2. Install the "Camera Handler Server" add-on.
 3. Start the add-on.
 
 ## Configuration

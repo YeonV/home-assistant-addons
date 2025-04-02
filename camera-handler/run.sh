@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bashio
+#!/usr/bin/with-contenv bashio mqtt
 
 # # Just log a message and wait, doing nothing else
 # bashio::log.info "--- MINIMAL run.sh: Container started, attempting sleep ---"
