@@ -33,6 +33,8 @@ COPY run.sh /
 
 # Make run.sh executable
 RUN chmod a+x /run.sh
+RUN ls -la
+RUN cat /run.sh
 
 # Expose the port (optional as host_network=true, but good practice)
 EXPOSE 5000
