@@ -32,15 +32,15 @@ COPY bin.cjs .
 COPY run.sh .
 
 # Make run.sh executable
-RUN chmod a+x /run.sh
+RUN chmod a+x .run.sh
 RUN ls -la
-RUN cat /run.sh
+RUN cat .run.sh
 
 # Expose the port (optional as host_network=true, but good practice)
 EXPOSE 5000
 
 # Tell S6 how to start your application via the run script
-CMD [ "/run.sh" ]
+CMD [ ".run.sh" ]
 
 # Set labels for HA compatibility (optional but good)
 LABEL io.hass.version="VERSION" \
