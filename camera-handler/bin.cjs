@@ -52698,13 +52698,6 @@ var handleIncomingPunch = (msg, ee, rinfo) => {
 var discoverDevices = (discovery_ips) => {
   const ee = new import_node_events2.default();
   let mqttClient = null;
-  try {
-    console.log("--- Addon Environment Variables ---");
-    console.log(JSON.stringify(process.env, null, 2));
-    console.log("---------------------------------");
-  } catch (e) {
-    console.error("Error logging environment variables:", e);
-  }
   const mqttHost = process.env.MQTT_HOST;
   const mqttPort = process.env.MQTT_PORT;
   const mqttUsername = process.env.MQTT_USERNAME;
@@ -52856,7 +52849,7 @@ ${err.stack}`);
     logger.info(`Discovered new camera: ID=${safeDevId} (Original: ${dev.devId}) at ${rinfo.address}`);
     if (mqttClient && mqttClient.connected) {
       const deviceId = `cam_reverse_${safeDevId}`;
-      const baseUrl = `http://camera_handler:5000/camera/${dev.devId}`;
+      const baseUrl = `http://nodejs_server:5000/camera/${dev.devId}`;
       const configTopic = `homeassistant/camera/${deviceId}/config`;
       const configPayload = {
         // Identification
