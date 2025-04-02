@@ -52698,6 +52698,13 @@ var handleIncomingPunch = (msg, ee, rinfo) => {
 var discoverDevices = (discovery_ips) => {
   const ee = new import_node_events2.default();
   let mqttClient = null;
+  try {
+    console.log("--- Addon Environment Variables ---");
+    console.log(JSON.stringify(process.env, null, 2));
+    console.log("---------------------------------");
+  } catch (e) {
+    console.error("Error logging environment variables:", e);
+  }
   const mqttHost = process.env.MQTT_HOST;
   const mqttPort = process.env.MQTT_PORT;
   const mqttUsername = process.env.MQTT_USERNAME;
