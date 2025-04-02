@@ -1,5 +1,5 @@
 name: X9/A5 Camera Handler
-version: 0.0.6
+version: 0.0.7
 slug: camera_handler
 description: A custom Node.js server for Home Assistant.
 url: https://github.com/YeonV/home-assistant-addons/tree/master/camera-handler
@@ -15,8 +15,8 @@ hassio_api: true
 hassio_role: manager
 host_network: true
 ingress_stream: true
-# services:
-#   - mqtt:want
+services:
+  - mqtt:want
 ingress_port: 5000
 ingress_timeout: 60
 ingress_entry: "/"
