@@ -52704,7 +52704,7 @@ var discoverDevices = (discovery_ips) => {
   const mqttPassword = process.env.MQTT_PASSWORD;
   const mqttProtocol = process.env.MQTT_PROTOCOL || "mqtt";
   if (!mqttHost || !mqttPort) {
-    logger.warn("MQTT configuration not found in environment variables. MQTT Discovery disabled. Ensure MQTT integration and Mosquitto broker addon are set up in Home Assistant.");
+    logger.info("MQTT configuration not found in environment variables. MQTT Discovery disabled. Ensure MQTT integration and Mosquitto broker addon are set up in Home Assistant.");
   } else {
     const brokerUrl = `${mqttProtocol}://${mqttHost}:${mqttPort}`;
     const options = {
@@ -52731,7 +52731,7 @@ var discoverDevices = (discovery_ips) => {
       mqttClient = null;
     });
     client.on("offline", () => {
-      logger.warn("MQTT client is offline.");
+      logger.info("MQTT client is offline.");
       mqttClient = null;
     });
   }
@@ -52761,7 +52761,7 @@ ${err.stack}`);
         return;
       }
       discovery_ips.forEach((discovery_ip) => {
-        logger.log("trace", `>> LanSearch [${discovery_ip}]`);
+        logger.info("trace", `>> LanSearch [${discovery_ip}]`);
         if (sock && sock.address()) {
           sock.send(new Uint8Array(ls_buf.buffer), SEND_PORT, discovery_ip, (err) => {
             if (err) {
@@ -52769,7 +52769,7 @@ ${err.stack}`);
             }
           });
         } else {
-          logger.warn("UDP socket not ready or closed, skipping LanSearch send.");
+          logger.info("UDP socket not ready or closed, skipping LanSearch send.");
         }
       });
     };
@@ -52815,7 +52815,7 @@ ${err.stack}`);
         logger.info("UDP socket closed.");
       }
     } catch (closeErr) {
-      logger.warn(`Error closing UDP socket during cleanup: ${closeErr.message}`);
+      logger.info(`Error closing UDP socket during cleanup: ${closeErr.message}`);
     }
     if (mqttClient) {
       logger.info("Closing MQTT client connection.");
@@ -52895,7 +52895,7 @@ ${err.stack}`);
         }
       });
     } else {
-      logger.warn(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
+      logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
       logger.info(`Manual configuration needed for camera ${dev.devId} at ${rinfo.address}:`);
       logger.info(`MJPEG URL:       http://<HOME_ASSISTANT_IP_OR_HOSTNAME>:5000/camera/${dev.devId}`);
       logger.info(`Still Image URL: http://<HOME_ASSISTANT_IP_OR_HOSTNAME>:5000/camera/${dev.devId}`);
