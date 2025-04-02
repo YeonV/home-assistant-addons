@@ -6,24 +6,22 @@ FROM ${BUILD_FROM}
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# --- Remove Node.js/npm installation ---
-# The base image should already contain a suitable Node.js version (likely v20)
-# RUN \
-#    apk add --no-cache \
-#        nodejs=... \
-#        npm=...
-
-# --- Verification Step (Recommended) ---
-# Add this to verify the Node/npm versions present in the base image during build
+# --- Explicitly install Node.js v18 ---
+# Install specific Node.js v18 available in Alpine 3.18 repos for aarch64
+# Check available versions: https://pkgs.alpinelinux.org/packages
 RUN \
-    echo "Verifying Node.js and npm versions from base image:" \
-    && echo "Node version:" \
+    echo "Updating apk cache..." \
+    && apk update \
+    && echo "Attempting to install nodejs 18.17.1..." \
+    && apk add --no-cache \
+        nodejs=18.17.1-r0 \
+    && echo "Node.js installation command finished." \
+    && echo "Verifying Node version:" \
     && node -v \
-    && echo "NPM version:" \
+    && echo "Verifying NPM version:" \
     && npm -v \
-    && echo "Verification complete."
-# --- End Verification Step ---
-
+    && echo "Node.js/npm installation and verification complete."
+# --- End Node.js Installation ---
 
 # Set the working directory
 WORKDIR /usr/src/app
