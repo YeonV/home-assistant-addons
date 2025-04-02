@@ -14,7 +14,7 @@ RUN \
     && apk update \
     && echo "Attempting to install nodejs 18.20.1-r0 and npm..." \
     && apk add --no-cache \
-        nodejs=18.20.1-r0 \
+        nodejs=22.13.1-r0 \
         npm \
     && echo "Node.js and npm installation command finished." \
     && echo "Verifying Node version:" \
