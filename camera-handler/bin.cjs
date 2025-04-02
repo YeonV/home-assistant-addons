@@ -38808,15 +38808,15 @@ var require_publish = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     var validReasonCodes = [0, 16, 128, 131, 135, 144, 145, 151, 153];
-    var handlePublish = (client, packet, done) => {
-      client.log("handlePublish: packet %o", packet);
-      done = typeof done !== "undefined" ? done : client.noop;
+    var handlePublish = (client2, packet, done) => {
+      client2.log("handlePublish: packet %o", packet);
+      done = typeof done !== "undefined" ? done : client2.noop;
       let topic = packet.topic.toString();
       const message = packet.payload;
       const { qos } = packet;
       const { messageId } = packet;
-      const { options } = client;
-      if (client.options.protocolVersion === 5) {
+      const { options } = client2;
+      if (client2.options.protocolVersion === 5) {
         let alias;
         if (packet.properties) {
           alias = packet.properties.topicAlias;
@@ -38824,30 +38824,30 @@ var require_publish = __commonJS({
         if (typeof alias !== "undefined") {
           if (topic.length === 0) {
             if (alias > 0 && alias <= 65535) {
-              const gotTopic = client["topicAliasRecv"].getTopicByAlias(alias);
+              const gotTopic = client2["topicAliasRecv"].getTopicByAlias(alias);
               if (gotTopic) {
                 topic = gotTopic;
-                client.log("handlePublish :: topic complemented by alias. topic: %s - alias: %d", topic, alias);
+                client2.log("handlePublish :: topic complemented by alias. topic: %s - alias: %d", topic, alias);
               } else {
-                client.log("handlePublish :: unregistered topic alias. alias: %d", alias);
-                client.emit("error", new Error("Received unregistered Topic Alias"));
+                client2.log("handlePublish :: unregistered topic alias. alias: %d", alias);
+                client2.emit("error", new Error("Received unregistered Topic Alias"));
                 return;
               }
             } else {
-              client.log("handlePublish :: topic alias out of range. alias: %d", alias);
-              client.emit("error", new Error("Received Topic Alias is out of range"));
+              client2.log("handlePublish :: topic alias out of range. alias: %d", alias);
+              client2.emit("error", new Error("Received Topic Alias is out of range"));
               return;
             }
-          } else if (client["topicAliasRecv"].put(topic, alias)) {
-            client.log("handlePublish :: registered topic: %s - alias: %d", topic, alias);
+          } else if (client2["topicAliasRecv"].put(topic, alias)) {
+            client2.log("handlePublish :: registered topic: %s - alias: %d", topic, alias);
           } else {
-            client.log("handlePublish :: topic alias out of range. alias: %d", alias);
-            client.emit("error", new Error("Received Topic Alias is out of range"));
+            client2.log("handlePublish :: topic alias out of range. alias: %d", alias);
+            client2.emit("error", new Error("Received Topic Alias is out of range"));
             return;
           }
         }
       }
-      client.log("handlePublish: qos %d", qos);
+      client2.log("handlePublish: qos %d", qos);
       switch (qos) {
         case 2: {
           options.customHandleAcks(topic, message, packet, (error, code) => {
@@ -38856,16 +38856,16 @@ var require_publish = __commonJS({
               error = null;
             }
             if (error) {
-              return client.emit("error", error);
+              return client2.emit("error", error);
             }
             if (validReasonCodes.indexOf(code) === -1) {
-              return client.emit("error", new Error("Wrong reason code for pubrec"));
+              return client2.emit("error", new Error("Wrong reason code for pubrec"));
             }
             if (code) {
-              client["_sendPacket"]({ cmd: "pubrec", messageId, reasonCode: code }, done);
+              client2["_sendPacket"]({ cmd: "pubrec", messageId, reasonCode: code }, done);
             } else {
-              client.incomingStore.put(packet, () => {
-                client["_sendPacket"]({ cmd: "pubrec", messageId }, done);
+              client2.incomingStore.put(packet, () => {
+                client2["_sendPacket"]({ cmd: "pubrec", messageId }, done);
               });
             }
           });
@@ -38878,29 +38878,29 @@ var require_publish = __commonJS({
               error = null;
             }
             if (error) {
-              return client.emit("error", error);
+              return client2.emit("error", error);
             }
             if (validReasonCodes.indexOf(code) === -1) {
-              return client.emit("error", new Error("Wrong reason code for puback"));
+              return client2.emit("error", new Error("Wrong reason code for puback"));
             }
             if (!code) {
-              client.emit("message", topic, message, packet);
+              client2.emit("message", topic, message, packet);
             }
-            client.handleMessage(packet, (err) => {
+            client2.handleMessage(packet, (err) => {
               if (err) {
                 return done && done(err);
               }
-              client["_sendPacket"]({ cmd: "puback", messageId, reasonCode: code }, done);
+              client2["_sendPacket"]({ cmd: "puback", messageId, reasonCode: code }, done);
             });
           });
           break;
         }
         case 0:
-          client.emit("message", topic, message, packet);
-          client.handleMessage(packet, done);
+          client2.emit("message", topic, message, packet);
+          client2.handleMessage(packet, done);
           break;
         default:
-          client.log("handlePublish: unknown QoS. Doing nothing.");
+          client2.log("handlePublish: unknown QoS. Doing nothing.");
           break;
       }
     };
@@ -39182,28 +39182,28 @@ var require_ack = __commonJS({
       161: "Subscription Identifiers not supported",
       162: "Wildcard Subscriptions not supported"
     };
-    var handleAck = (client, packet) => {
+    var handleAck = (client2, packet) => {
       const { messageId } = packet;
       const type = packet.cmd;
       let response = null;
-      const cb = client.outgoing[messageId] ? client.outgoing[messageId].cb : null;
+      const cb = client2.outgoing[messageId] ? client2.outgoing[messageId].cb : null;
       let err = null;
       if (!cb) {
-        client.log("_handleAck :: Server sent an ack in error. Ignoring.");
+        client2.log("_handleAck :: Server sent an ack in error. Ignoring.");
         return;
       }
-      client.log("_handleAck :: packet type", type);
+      client2.log("_handleAck :: packet type", type);
       switch (type) {
         case "pubcomp":
         case "puback": {
           const pubackRC = packet.reasonCode;
           if (pubackRC && pubackRC > 0 && pubackRC !== 16) {
             err = new shared_1.ErrorWithReasonCode(`Publish error: ${exports2.ReasonCodes[pubackRC]}`, pubackRC);
-            client["_removeOutgoingAndStoreMessage"](messageId, () => {
+            client2["_removeOutgoingAndStoreMessage"](messageId, () => {
               cb(err, packet);
             });
           } else {
-            client["_removeOutgoingAndStoreMessage"](messageId, cb);
+            client2["_removeOutgoingAndStoreMessage"](messageId, cb);
           }
           break;
         }
@@ -39216,48 +39216,48 @@ var require_ack = __commonJS({
           const pubrecRC = packet.reasonCode;
           if (pubrecRC && pubrecRC > 0 && pubrecRC !== 16) {
             err = new shared_1.ErrorWithReasonCode(`Publish error: ${exports2.ReasonCodes[pubrecRC]}`, pubrecRC);
-            client["_removeOutgoingAndStoreMessage"](messageId, () => {
+            client2["_removeOutgoingAndStoreMessage"](messageId, () => {
               cb(err, packet);
             });
           } else {
-            client["_sendPacket"](response);
+            client2["_sendPacket"](response);
           }
           break;
         }
         case "suback": {
-          delete client.outgoing[messageId];
-          client.messageIdProvider.deallocate(messageId);
+          delete client2.outgoing[messageId];
+          client2.messageIdProvider.deallocate(messageId);
           const granted = packet.granted;
           for (let grantedI = 0; grantedI < granted.length; grantedI++) {
             const subackRC = granted[grantedI];
             if ((subackRC & 128) !== 0) {
               err = new Error(`Subscribe error: ${exports2.ReasonCodes[subackRC]}`);
               err.code = subackRC;
-              const topics = client.messageIdToTopic[messageId];
+              const topics = client2.messageIdToTopic[messageId];
               if (topics) {
                 topics.forEach((topic) => {
-                  delete client["_resubscribeTopics"][topic];
+                  delete client2["_resubscribeTopics"][topic];
                 });
               }
             }
           }
-          delete client.messageIdToTopic[messageId];
-          client["_invokeStoreProcessingQueue"]();
+          delete client2.messageIdToTopic[messageId];
+          client2["_invokeStoreProcessingQueue"]();
           cb(err, packet);
           break;
         }
         case "unsuback": {
-          delete client.outgoing[messageId];
-          client.messageIdProvider.deallocate(messageId);
-          client["_invokeStoreProcessingQueue"]();
+          delete client2.outgoing[messageId];
+          client2.messageIdProvider.deallocate(messageId);
+          client2["_invokeStoreProcessingQueue"]();
           cb(null, packet);
           break;
         }
         default:
-          client.emit("error", new Error("unrecognized packet type"));
+          client2.emit("error", new Error("unrecognized packet type"));
       }
-      if (client.disconnecting && Object.keys(client.outgoing).length === 0) {
-        client.emit("outgoingEmpty");
+      if (client2.disconnecting && Object.keys(client2.outgoing).length === 0) {
+        client2.emit("outgoingEmpty");
       }
     };
     exports2.default = handleAck;
@@ -39271,26 +39271,26 @@ var require_auth = __commonJS({
     Object.defineProperty(exports2, "__esModule", { value: true });
     var shared_1 = require_shared();
     var ack_1 = require_ack();
-    var handleAuth = (client, packet) => {
-      const { options } = client;
+    var handleAuth = (client2, packet) => {
+      const { options } = client2;
       const version = options.protocolVersion;
       const rc = version === 5 ? packet.reasonCode : packet.returnCode;
       if (version !== 5) {
         const err = new shared_1.ErrorWithReasonCode(`Protocol error: Auth packets are only supported in MQTT 5. Your version:${version}`, rc);
-        client.emit("error", err);
+        client2.emit("error", err);
         return;
       }
-      client.handleAuth(packet, (err, packet2) => {
+      client2.handleAuth(packet, (err, packet2) => {
         if (err) {
-          client.emit("error", err);
+          client2.emit("error", err);
           return;
         }
         if (rc === 24) {
-          client.reconnecting = false;
-          client["_sendPacket"](packet2);
+          client2.reconnecting = false;
+          client2["_sendPacket"](packet2);
         } else {
           const error = new shared_1.ErrorWithReasonCode(`Connection refused: ${ack_1.ReasonCodes[rc]}`, rc);
-          client.emit("error", error);
+          client2.emit("error", error);
         }
       });
     };
@@ -43677,21 +43677,21 @@ var require_connack = __commonJS({
     var ack_1 = require_ack();
     var topic_alias_send_1 = __importDefault(require_topic_alias_send());
     var shared_1 = require_shared();
-    var handleConnack = (client, packet) => {
-      client.log("_handleConnack");
-      const { options } = client;
+    var handleConnack = (client2, packet) => {
+      client2.log("_handleConnack");
+      const { options } = client2;
       const version = options.protocolVersion;
       const rc = version === 5 ? packet.reasonCode : packet.returnCode;
-      clearTimeout(client["connackTimer"]);
-      delete client["topicAliasSend"];
+      clearTimeout(client2["connackTimer"]);
+      delete client2["topicAliasSend"];
       if (packet.properties) {
         if (packet.properties.topicAliasMaximum) {
           if (packet.properties.topicAliasMaximum > 65535) {
-            client.emit("error", new Error("topicAliasMaximum from broker is out of range"));
+            client2.emit("error", new Error("topicAliasMaximum from broker is out of range"));
             return;
           }
           if (packet.properties.topicAliasMaximum > 0) {
-            client["topicAliasSend"] = new topic_alias_send_1.default(packet.properties.topicAliasMaximum);
+            client2["topicAliasSend"] = new topic_alias_send_1.default(packet.properties.topicAliasMaximum);
           }
         }
         if (packet.properties.serverKeepAlive && options.keepalive) {
@@ -43705,13 +43705,13 @@ var require_connack = __commonJS({
         }
       }
       if (rc === 0) {
-        client.reconnecting = false;
-        client["_onConnect"](packet);
+        client2.reconnecting = false;
+        client2["_onConnect"](packet);
       } else if (rc > 0) {
         const err = new shared_1.ErrorWithReasonCode(`Connection refused: ${ack_1.ReasonCodes[rc]}`, rc);
-        client.emit("error", err);
-        if (client.options.reconnectOnConnackError) {
-          client["_cleanUp"](true);
+        client2.emit("error", err);
+        if (client2.options.reconnectOnConnackError) {
+          client2["_cleanUp"](true);
         }
       }
     };
@@ -43724,23 +43724,23 @@ var require_pubrel = __commonJS({
   "node_modules/mqtt/build/lib/handlers/pubrel.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
-    var handlePubrel = (client, packet, done) => {
-      client.log("handling pubrel packet");
-      const callback = typeof done !== "undefined" ? done : client.noop;
+    var handlePubrel = (client2, packet, done) => {
+      client2.log("handling pubrel packet");
+      const callback = typeof done !== "undefined" ? done : client2.noop;
       const { messageId } = packet;
       const comp = { cmd: "pubcomp", messageId };
-      client.incomingStore.get(packet, (err, pub) => {
+      client2.incomingStore.get(packet, (err, pub) => {
         if (!err) {
-          client.emit("message", pub.topic, pub.payload, pub);
-          client.handleMessage(pub, (err2) => {
+          client2.emit("message", pub.topic, pub.payload, pub);
+          client2.handleMessage(pub, (err2) => {
             if (err2) {
               return callback(err2);
             }
-            client.incomingStore.del(pub, client.noop);
-            client["_sendPacket"](comp, callback);
+            client2.incomingStore.del(pub, client2.noop);
+            client2["_sendPacket"](comp, callback);
           });
         } else {
-          client["_sendPacket"](comp, callback);
+          client2["_sendPacket"](comp, callback);
         }
       });
     };
@@ -43761,55 +43761,55 @@ var require_handlers = __commonJS({
     var connack_1 = __importDefault(require_connack());
     var ack_1 = __importDefault(require_ack());
     var pubrel_1 = __importDefault(require_pubrel());
-    var handle = (client, packet, done) => {
-      const { options } = client;
+    var handle = (client2, packet, done) => {
+      const { options } = client2;
       if (options.protocolVersion === 5 && options.properties && options.properties.maximumPacketSize && options.properties.maximumPacketSize < packet.length) {
-        client.emit("error", new Error(`exceeding packets size ${packet.cmd}`));
-        client.end({
+        client2.emit("error", new Error(`exceeding packets size ${packet.cmd}`));
+        client2.end({
           reasonCode: 149,
           properties: { reasonString: "Maximum packet size was exceeded" }
         });
-        return client;
+        return client2;
       }
-      client.log("_handlePacket :: emitting packetreceive");
-      client.emit("packetreceive", packet);
+      client2.log("_handlePacket :: emitting packetreceive");
+      client2.emit("packetreceive", packet);
       switch (packet.cmd) {
         case "publish":
-          (0, publish_1.default)(client, packet, done);
+          (0, publish_1.default)(client2, packet, done);
           break;
         case "puback":
         case "pubrec":
         case "pubcomp":
         case "suback":
         case "unsuback":
-          client.reschedulePing();
-          (0, ack_1.default)(client, packet);
+          client2.reschedulePing();
+          (0, ack_1.default)(client2, packet);
           done();
           break;
         case "pubrel":
-          client.reschedulePing();
-          (0, pubrel_1.default)(client, packet, done);
+          client2.reschedulePing();
+          (0, pubrel_1.default)(client2, packet, done);
           break;
         case "connack":
-          (0, connack_1.default)(client, packet);
+          (0, connack_1.default)(client2, packet);
           done();
           break;
         case "auth":
-          client.reschedulePing();
-          (0, auth_1.default)(client, packet);
+          client2.reschedulePing();
+          (0, auth_1.default)(client2, packet);
           done();
           break;
         case "pingresp":
-          client.log("_handlePacket :: received pingresp");
-          client.reschedulePing(true);
+          client2.log("_handlePacket :: received pingresp");
+          client2.reschedulePing(true);
           done();
           break;
         case "disconnect":
-          client.emit("disconnect", packet);
+          client2.emit("disconnect", packet);
           done();
           break;
         default:
-          client.log("_handlePacket :: unknown command");
+          client2.log("_handlePacket :: unknown command");
           done();
           break;
       }
@@ -44427,11 +44427,11 @@ var require_KeepaliveManager = __commonJS({
       get keepalive() {
         return this._keepalive;
       }
-      constructor(client, variant) {
+      constructor(client2, variant) {
         this.destroyed = false;
-        this.client = client;
+        this.client = client2;
         this.timer = typeof variant === "object" && "set" in variant && "clear" in variant ? variant : (0, get_timer_1.default)(variant);
-        this.setKeepalive(client.options.keepalive);
+        this.setKeepalive(client2.options.keepalive);
       }
       clear() {
         if (this.timerId) {
@@ -49483,10 +49483,10 @@ var require_ws2 = __commonJS({
       "pfx",
       "passphrase"
     ];
-    function buildUrl(opts, client) {
+    function buildUrl(opts, client2) {
       let url = `${opts.protocol}://${opts.hostname}:${opts.port}${opts.path}`;
       if (typeof opts.transformWsUrl === "function") {
-        url = opts.transformWsUrl(url, opts, client);
+        url = opts.transformWsUrl(url, opts, client2);
       }
       return url;
     }
@@ -49534,7 +49534,7 @@ var require_ws2 = __commonJS({
       }
       return options;
     }
-    function createWebSocket(client, url, opts) {
+    function createWebSocket(client2, url, opts) {
       debug("createWebSocket");
       debug(`protocol: ${opts.protocolId} ${opts.protocolVersion}`);
       const websocketSubProtocol = opts.protocolId === "MQIsdp" && opts.protocolVersion === 3 ? "mqttv3.1" : "mqtt";
@@ -49547,9 +49547,9 @@ var require_ws2 = __commonJS({
       }
       return socket;
     }
-    function createBrowserWebSocket(client, opts) {
+    function createBrowserWebSocket(client2, opts) {
       const websocketSubProtocol = opts.protocolId === "MQIsdp" && opts.protocolVersion === 3 ? "mqttv3.1" : "mqtt";
-      const url = buildUrl(opts, client);
+      const url = buildUrl(opts, client2);
       let socket;
       if (opts.createWebsocket) {
         socket = opts.createWebsocket(url, [websocketSubProtocol], opts);
@@ -49559,12 +49559,12 @@ var require_ws2 = __commonJS({
       socket.binaryType = "arraybuffer";
       return socket;
     }
-    var streamBuilder = (client, opts) => {
+    var streamBuilder = (client2, opts) => {
       debug("streamBuilder");
       const options = setDefaultOpts(opts);
       options.hostname = options.hostname || options.host || "localhost";
-      const url = buildUrl(options, client);
-      const socket = createWebSocket(client, url, options);
+      const url = buildUrl(options, client2);
+      const socket = createWebSocket(client2, url, options);
       const webSocketStream = ws_1.default.createWebSocketStream(socket, options.wsOptions);
       webSocketStream["url"] = url;
       socket.on("close", () => {
@@ -49573,14 +49573,14 @@ var require_ws2 = __commonJS({
       return webSocketStream;
     };
     exports2.streamBuilder = streamBuilder;
-    var browserStreamBuilder = (client, opts) => {
+    var browserStreamBuilder = (client2, opts) => {
       debug("browserStreamBuilder");
       let stream;
       const options = setDefaultBrowserOpts(opts);
       const bufferSize = options.browserBufferSize || 1024 * 512;
       const bufferTimeout = opts.browserBufferTimeout || 1e3;
       const coerceToBuffer = !opts.objectMode;
-      const socket = createBrowserWebSocket(client, opts);
+      const socket = createBrowserWebSocket(client2, opts);
       const proxy = buildProxy(opts, socketWriteBrowser, socketEndBrowser);
       if (!opts.objectMode) {
         proxy._writev = BufferedDuplex_1.writev.bind(proxy);
@@ -49683,7 +49683,7 @@ var require_tcp = __commonJS({
     var net_1 = __importDefault(require("net"));
     var debug_1 = __importDefault(require_src2());
     var debug = (0, debug_1.default)("mqttjs:tcp");
-    var buildStream = (client, opts) => {
+    var buildStream = (client2, opts) => {
       opts.port = opts.port || 1883;
       opts.hostname = opts.hostname || opts.host || "localhost";
       const { port, path } = opts;
@@ -49707,7 +49707,7 @@ var require_tls = __commonJS({
     var net_1 = __importDefault(require("net"));
     var debug_1 = __importDefault(require_src2());
     var debug = (0, debug_1.default)("mqttjs:tls");
-    var buildStream = (client, opts) => {
+    var buildStream = (client2, opts) => {
       opts.port = opts.port || 8883;
       opts.host = opts.hostname || opts.host || "localhost";
       if (net_1.default.isIP(opts.host) === 0) {
@@ -49726,7 +49726,7 @@ var require_tls = __commonJS({
       });
       function handleTLSerrors(err) {
         if (opts.rejectUnauthorized) {
-          client.emit("error", err);
+          client2.emit("error", err);
         }
         connection.end();
       }
@@ -49781,14 +49781,14 @@ var require_wx = __commonJS({
         opts.wsOptions = {};
       }
     }
-    function buildUrl(opts, client) {
+    function buildUrl(opts, client2) {
       const protocol = opts.protocol === "wxs" ? "wss" : "ws";
       let url = `${protocol}://${opts.hostname}${opts.path}`;
       if (opts.port && opts.port !== 80 && opts.port !== 443) {
         url = `${protocol}://${opts.hostname}:${opts.port}${opts.path}`;
       }
       if (typeof opts.transformWsUrl === "function") {
-        url = opts.transformWsUrl(url, opts, client);
+        url = opts.transformWsUrl(url, opts, client2);
       }
       return url;
     }
@@ -49814,14 +49814,14 @@ var require_wx = __commonJS({
         stream.destroy(err);
       });
     }
-    var buildStream = (client, opts) => {
+    var buildStream = (client2, opts) => {
       opts.hostname = opts.hostname || opts.host;
       if (!opts.hostname) {
         throw new Error("Could not determine host. Specify host manually.");
       }
       const websocketSubProtocol = opts.protocolId === "MQIsdp" && opts.protocolVersion === 3 ? "mqttv3.1" : "mqtt";
       setDefaultOpts(opts);
-      const url = buildUrl(opts, client);
+      const url = buildUrl(opts, client2);
       socketTask = wx.connectSocket({
         url,
         protocols: [websocketSubProtocol]
@@ -49900,14 +49900,14 @@ var require_ali = __commonJS({
         opts.wsOptions = {};
       }
     }
-    function buildUrl(opts, client) {
+    function buildUrl(opts, client2) {
       const protocol = opts.protocol === "alis" ? "wss" : "ws";
       let url = `${protocol}://${opts.hostname}${opts.path}`;
       if (opts.port && opts.port !== 80 && opts.port !== 443) {
         url = `${protocol}://${opts.hostname}:${opts.port}${opts.path}`;
       }
       if (typeof opts.transformWsUrl === "function") {
-        url = opts.transformWsUrl(url, opts, client);
+        url = opts.transformWsUrl(url, opts, client2);
       }
       return url;
     }
@@ -49943,14 +49943,14 @@ var require_ali = __commonJS({
         stream.destroy(err);
       });
     }
-    var buildStream = (client, opts) => {
+    var buildStream = (client2, opts) => {
       opts.hostname = opts.hostname || opts.host;
       if (!opts.hostname) {
         throw new Error("Could not determine host. Specify host manually.");
       }
       const websocketSubProtocol = opts.protocolId === "MQIsdp" && opts.protocolVersion === 3 ? "mqttv3.1" : "mqtt";
       setDefaultOpts(opts);
-      const url = buildUrl(opts, client);
+      const url = buildUrl(opts, client2);
       my = opts.my;
       my.connectSocket({
         url,
@@ -50097,40 +50097,40 @@ var require_connect = __commonJS({
       if (opts.protocol) {
         opts.defaultProtocol = opts.protocol;
       }
-      function wrapper(client2) {
+      function wrapper(client3) {
         if (opts.servers) {
-          if (!client2._reconnectCount || client2._reconnectCount === opts.servers.length) {
-            client2._reconnectCount = 0;
+          if (!client3._reconnectCount || client3._reconnectCount === opts.servers.length) {
+            client3._reconnectCount = 0;
           }
-          opts.host = opts.servers[client2._reconnectCount].host;
-          opts.port = opts.servers[client2._reconnectCount].port;
-          opts.protocol = !opts.servers[client2._reconnectCount].protocol ? opts.defaultProtocol : opts.servers[client2._reconnectCount].protocol;
+          opts.host = opts.servers[client3._reconnectCount].host;
+          opts.port = opts.servers[client3._reconnectCount].port;
+          opts.protocol = !opts.servers[client3._reconnectCount].protocol ? opts.defaultProtocol : opts.servers[client3._reconnectCount].protocol;
           opts.hostname = opts.host;
-          client2._reconnectCount++;
+          client3._reconnectCount++;
         }
         debug("calling streambuilder for", opts.protocol);
-        return protocols[opts.protocol](client2, opts);
+        return protocols[opts.protocol](client3, opts);
       }
-      const client = new client_1.default(wrapper, opts);
-      client.on("error", () => {
+      const client2 = new client_1.default(wrapper, opts);
+      client2.on("error", () => {
       });
-      return client;
+      return client2;
     }
     function connectAsync(brokerUrl, opts, allowRetries = true) {
       return new Promise((resolve5, reject) => {
-        const client = connect(brokerUrl, opts);
+        const client2 = connect(brokerUrl, opts);
         const promiseResolutionListeners = {
           connect: (connack) => {
             removePromiseResolutionListeners();
-            resolve5(client);
+            resolve5(client2);
           },
           end: () => {
             removePromiseResolutionListeners();
-            resolve5(client);
+            resolve5(client2);
           },
           error: (err) => {
             removePromiseResolutionListeners();
-            client.end();
+            client2.end();
             reject(err);
           }
         };
@@ -50141,11 +50141,11 @@ var require_connect = __commonJS({
         }
         function removePromiseResolutionListeners() {
           Object.keys(promiseResolutionListeners).forEach((eventName) => {
-            client.off(eventName, promiseResolutionListeners[eventName]);
+            client2.off(eventName, promiseResolutionListeners[eventName]);
           });
         }
         Object.keys(promiseResolutionListeners).forEach((eventName) => {
-          client.on(eventName, promiseResolutionListeners[eventName]);
+          client2.on(eventName, promiseResolutionListeners[eventName]);
         });
       });
     }
@@ -52677,7 +52677,6 @@ var Handlers = {
 // discovery.ts
 var import_node_dgram2 = require("dgram");
 var import_node_events2 = __toESM(require("events"), 1);
-var import_mqtt = __toESM(require_build5(), 1);
 var sanitizeForMqtt = (id) => {
   return id.replace(/[\s+#\/]/g, "_");
 };
@@ -52695,46 +52694,8 @@ var handleIncomingPunch = (msg, ee, rinfo) => {
   logger.debug(`Received a PunchPkt message from ${rinfo.address}`);
   ee.emit("discover", rinfo, parse_PunchPkt(dv));
 };
-var discoverDevices = (discovery_ips) => {
+var discoverDevices = (discovery_ips, mqttClient) => {
   const ee = new import_node_events2.default();
-  let mqttClient = null;
-  const mqttHost = process.env.MQTT_HOST;
-  const mqttPort = process.env.MQTT_PORT;
-  const mqttUsername = process.env.MQTT_USERNAME;
-  const mqttPassword = process.env.MQTT_PASSWORD;
-  const mqttProtocol = process.env.MQTT_PROTOCOL || "mqtt";
-  if (!mqttHost || !mqttPort) {
-    logger.info("MQTT configuration not found in environment variables. MQTT Discovery disabled. Ensure MQTT integration and Mosquitto broker addon are set up in Home Assistant.");
-  } else {
-    const brokerUrl = `${mqttProtocol}://${mqttHost}:${mqttPort}`;
-    const options = {
-      clientId: `cam_reverse_addon_${Math.random().toString(16).substring(2, 8)}`,
-      username: mqttUsername,
-      password: mqttPassword,
-      clean: true,
-      // Start with a clean session
-      connectTimeout: 1e4
-      // 10 seconds timeout
-    };
-    logger.info(`Attempting to connect to MQTT broker at ${brokerUrl}`);
-    const client = import_mqtt.default.connect(brokerUrl, options);
-    client.on("connect", () => {
-      logger.info("Successfully connected to MQTT broker. MQTT Discovery enabled.");
-      mqttClient = client;
-    });
-    client.on("error", (error) => {
-      logger.error(`MQTT Connection Error: ${error}. MQTT Discovery might not function.`);
-      mqttClient = null;
-    });
-    client.on("close", () => {
-      logger.info("MQTT connection closed.");
-      mqttClient = null;
-    });
-    client.on("offline", () => {
-      logger.info("MQTT client is offline.");
-      mqttClient = null;
-    });
-  }
   const sock = (0, import_node_dgram2.createSocket)("udp4");
   const SEND_PORT = 32108;
   let devicesDiscovered = {};
@@ -52795,7 +52756,6 @@ ${err.stack}`);
   } catch (bindErr) {
     logger.error(`Failed to bind UDP socket: ${bindErr.message}`);
     ee.emit("error", new Error("Failed to bind UDP socket for discovery."));
-    mqttClient == null ? void 0 : mqttClient.end();
     return ee;
   }
   const cleanup = () => {
@@ -52817,13 +52777,6 @@ ${err.stack}`);
     } catch (closeErr) {
       logger.info(`Error closing UDP socket during cleanup: ${closeErr.message}`);
     }
-    if (mqttClient) {
-      logger.info("Closing MQTT client connection.");
-      mqttClient.end(false, () => {
-        logger.info("MQTT client disconnected.");
-      });
-      mqttClient = null;
-    }
   };
   sock.on("close", () => {
     logger.info("UDP Discovery socket closed.");
@@ -52841,6 +52794,19 @@ ${err.stack}`);
   });
   ee.on("discover", (rinfo, dev) => {
     const safeDevId = sanitizeForMqtt(dev.devId);
+    const deviceId = `cam_reverse_${safeDevId}`;
+    const configTopic = `homeassistant/camera/${deviceId}/config`;
+    const payloadString = JSON.stringify({
+      // ... your payload structure ...
+    });
+    if (mqttClient && mqttClient.connected) {
+      console.log(`DEBUG: Using existing MQTT client to publish for ${safeDevId}`);
+      mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+      });
+    } else {
+      console.log(`DEBUG: MQTT client not available or connected for discovery of ${safeDevId}`);
+      logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
+    }
     if (devicesDiscovered[safeDevId]) {
       logger.debug(`Camera ${safeDevId} (${dev.devId}) at ${rinfo.address} already processed, ignoring.`);
       return;
@@ -52848,24 +52814,24 @@ ${err.stack}`);
     devicesDiscovered[safeDevId] = true;
     logger.info(`Discovered new camera: ID=${safeDevId} (Original: ${dev.devId}) at ${rinfo.address}`);
     if (mqttClient && mqttClient.connected) {
-      const deviceId = `cam_reverse_${safeDevId}`;
-      const baseUrl = `http://nodejs_server:5000/camera/${dev.devId}`;
-      const configTopic = `homeassistant/camera/${deviceId}/config`;
+      const deviceId2 = `cam_reverse_${safeDevId}`;
+      const baseUrl = `http://camera_handler:5000/camera/${dev.devId}`;
+      const configTopic2 = `homeassistant/camera/${deviceId2}/config`;
       const configPayload = {
         // Identification
         name: `CamReverse ${dev.devId}`,
         // User-friendly name
-        unique_id: deviceId,
+        unique_id: deviceId2,
         // Unique ID for this camera entity
         // Platform specific config (MJPEG)
-        topic: `homeassistant/camera/${deviceId}/state`,
+        topic: `homeassistant/camera/${deviceId2}/state`,
         // Dummy state topic (optional but good practice)
         mjpeg_url: baseUrl,
         still_image_url: baseUrl,
         // Often the same URL works for still images
         // Linking to Device Registry
         device: {
-          identifiers: [deviceId],
+          identifiers: [deviceId2],
           // Unique identifier for the device
           name: `CamReverse Camera ${dev.devId}`,
           manufacturer: "cam-reverse-addon",
@@ -52884,10 +52850,10 @@ ${err.stack}`);
         // Ensure Home Assistant knows this is an MJPEG camera implicitly via URLs
         // No explicit "platform: mjpeg" needed in MQTT discovery payload
       };
-      const payloadString = JSON.stringify(configPayload);
-      logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic}`);
-      logger.debug(`Payload: ${payloadString}`);
-      mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+      const payloadString2 = JSON.stringify(configPayload);
+      logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic2}`);
+      logger.debug(`Payload: ${payloadString2}`);
+      mqttClient.publish(configTopic2, payloadString2, { retain: true, qos: 0 }, (err) => {
         if (err) {
           logger.error(`Failed to publish MQTT discovery for ${safeDevId}: ${err.message}`);
         } else {
@@ -52962,6 +52928,65 @@ var addExifToJpeg = (jpegData, exifSegment) => {
   const modifiedJpeg = Buffer.concat([jpegData.subarray(0, soiEnd), exifSegment, jpegData.subarray(soiEnd)]);
   return modifiedJpeg;
 };
+
+// mqtt.ts
+var import_mqtt = __toESM(require_build5(), 1);
+var client = null;
+function initializeMqtt() {
+  if (client && client.connected) {
+    return client;
+  }
+  const mqttHost = process.env.MQTT_HOST;
+  const mqttPort = process.env.MQTT_PORT;
+  const mqttUsername = process.env.MQTT_USERNAME;
+  const mqttPassword = process.env.MQTT_PASSWORD;
+  const mqttProtocol = process.env.MQTT_PROTOCOL || "mqtt";
+  if (!mqttHost || !mqttPort) {
+    logger.info("MQTT config missing, client not initialized.");
+    console.log("DEBUG: MQTT config missing, client not initialized.");
+    return null;
+  }
+  const brokerUrl = `${mqttProtocol}://${mqttHost}:${mqttPort}`;
+  const options = {
+    clientId: `cam_reverse_addon_${Math.random().toString(16).substring(2, 8)}`,
+    username: mqttUsername,
+    password: mqttPassword,
+    clean: true,
+    // Start with a clean session
+    connectTimeout: 1e4
+    // 10 seconds timeout
+  };
+  console.log("DEBUG: Initializing central MQTT client...");
+  client = import_mqtt.default.connect(brokerUrl, options);
+  client.on("connect", () => {
+    console.log("DEBUG: Central MQTT Client Connected");
+    logger.info("Central MQTT Client Connected");
+  });
+  client.on("error", (err) => {
+    console.error("ERROR: Central MQTT Client Error:", err);
+    logger.error("Central MQTT Client Error:", err);
+  });
+  client.on("close", () => {
+    console.log("DEBUG: Central MQTT Client Closed");
+    logger.info("Central MQTT Client Closed");
+    client = null;
+  });
+  client.on("offline", () => {
+    logger.info("MQTT client is offline.");
+    client = null;
+  });
+  return client;
+}
+function getMqttClient() {
+  return client;
+}
+function closeMqtt() {
+  if (client) {
+    console.log("DEBUG: Closing central MQTT client.");
+    client.end();
+    client = null;
+  }
+}
 
 // cam.ico.gz
 var cam_ico_default = __toBinaryNode("H4sICOJhLWYAA2NhbS5pY28A7ZlPSxtBGMbfjcGUIDUQsUdzqUgP4gco5O7FL+DBHoQe8wGECO1HKIVe20vbS4v3UvALSBA8eVBEKRE0BSn9F6fP67wDw3Z2XZPZsCvzhCcvO5k/v5mdDbvvEkX4rKwQvlv0/jHRPBEtwSiiDdLlQUFB915b8Df4GlaezX2ew694IKXUSI6iaBHND+Hf8DvhnoNPcmBO8gU4Ht2VHXrtWFvW6QTZjQf1er2Skfsp3E/o52Xs+Ap+Aa979pbsH3usD2ncrVaL2T/dsg52n1eVSqUx6t7MsI6sM2u8Hyl112Qt47w/Y8f2ftrOi93i2rTHr1ar07Hrs4HyXQc3c76Rc5l0Ltbz5gffnD0mjp9Yc3sO/3JwHaPektQpFD+8zP9FiPsOnj9wN3b+isb/Fv7rYNlD3XnH/isav+v6fJZy/RSZ/wv+/2bS2heU/zu8mqV9Afk/93q9zO0LyL98l/aBP/AH/sAf+AN/4C8+v60y8YvacBf+KLE97jwmdf8mrJfwkPSz81CO25752V7vn0UH9H+u61rKffMbe3l+gTjHGM+zGHP5Yk78pv+xnh+Ff5hQZ+iZ3/vzO9SUve6qw+VNj/y55E+gnYT9v+Pz+vWQv3LmD0U8h76c374cj8wu/frOH6bmb2UvNcfZM7E18Z2/LXv+nFXm9xessr8/MirT+zvu8ysFBQWVVupGt8cjopoa4AaDKFJHN5HUtvRB/KMa8E3GLGJH4kZDR+pIHOg4JbEmcUFidwLx4ayOMzU9LkfmeDCluTiSiR39O8+D2/G8agt6nmbeZh3Muph1yrqu/wDiFlMnviUAAA==");
@@ -53294,6 +53319,8 @@ var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
 }, {});
 var cameraName = (id) => config2.cameras[id].alias || id;
 var serveHttp = (port) => {
+  console.log("DEBUG: Initializing MQTT client...");
+  initializeMqtt();
   const server = import_node_http.default.createServer((req, res) => {
     var _a2;
     if (req.url.startsWith("/ui/")) {
@@ -53378,7 +53405,8 @@ var serveHttp = (port) => {
       });
     } else if (req.url.startsWith("/discover")) {
       logger.info("Discovery triggered by client.");
-      const devEv2 = discoverDevices(config2.discovery_ips);
+      console.log("DEBUG: Starting initial device discovery...");
+      const devEv2 = discoverDevices(config2.discovery_ips, getMqttClient());
       devEv2.on("discover", (rinfo, dev) => {
         logger.info(`Discovered camera ${dev.devId} at ${rinfo.address}`);
       });
@@ -53658,7 +53686,7 @@ var serveHttp = (port) => {
       res.end();
     }
   });
-  let devEv = discoverDevices(config2.discovery_ips);
+  let devEv = discoverDevices(config2.discovery_ips, getMqttClient());
   const startSession = (s) => {
     startVideoStream(s);
     logger.info(`Camera ${s.devName} is now ready to stream`);
@@ -53708,6 +53736,14 @@ Content-Type: image/jpeg\r
   });
   logger.info(`Starting HTTP server on port ${port}`);
   server.listen(port);
+  process.on("SIGTERM", () => {
+    console.log("DEBUG: SIGTERM signal received. Closing MQTT client and server.");
+    closeMqtt();
+    server.close(() => {
+      console.log("DEBUG: HTTP server closed.");
+      process.exit(0);
+    });
+  });
 };
 
 // pair.ts
