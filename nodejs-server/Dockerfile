@@ -8,13 +8,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # --- Explicitly install Node.js v18 ---
 # Install specific Node.js v18 available in Alpine 3.18 repos for aarch64
-# Check available versions: https://pkgs.alpinelinux.org/packages
+# This version (18.20.1-r0) was identified from previous apk error messages
 RUN \
     echo "Updating apk cache..." \
     && apk update \
-    && echo "Attempting to install nodejs 18.17.1..." \
+    && echo "Attempting to install nodejs 18.20.1-r0..." \
     && apk add --no-cache \
-        nodejs=18.17.1-r0 \
+        nodejs=18.20.1-r0 \
     && echo "Node.js installation command finished." \
     && echo "Verifying Node version:" \
     && node -v \
