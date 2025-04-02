@@ -1,5 +1,5 @@
 name: Camera Handler
-version: 1.1.21
+version: 1.1.22
 slug: nodejs_server
 description: A custom Node.js server for Home Assistant.
 url: https://github.com/YeonV/home-assistant-addons/tree/master/nodejs-server
