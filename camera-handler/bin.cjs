@@ -52835,29 +52835,27 @@ ${err.stack}`);
           // Unique identifier for the device
           name: `CamReverse Camera ${dev.devId}`,
           manufacturer: "cam-reverse-addon",
-          model: "Reversed Stream"
-          // sw_version: "Your Addon Version", // Optional: Add addon version
-          // via_device: "cam-reverse-addon", // Optional: Link to the addon device itself if you create one
+          model: "Reversed Stream",
+          sw_version: "0.0.1"
+          // Optional: Add addon version
+          // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
         }
         // Optional: Availability tracking (requires publishing to availability_topic)
         // availability_topic: `homeassistant/camera/${deviceId}/availability`,
         // payload_available: "online",
         // payload_not_available: "offline",
-        // Other MQTT Camera options if needed (authentication, ssl etc.)
-        // username: "",
-        // password: "",
-        // verify_ssl: false,
-        // Ensure Home Assistant knows this is an MJPEG camera implicitly via URLs
-        // No explicit "platform: mjpeg" needed in MQTT discovery payload
       };
       const payloadString2 = JSON.stringify(configPayload);
+      console.log(payloadString2);
+      console.log("length:", payloadString2.length);
       logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic2}`);
-      logger.debug(`Payload: ${payloadString2}`);
       mqttClient.publish(configTopic2, payloadString2, { retain: true, qos: 0 }, (err) => {
         if (err) {
           logger.error(`Failed to publish MQTT discovery for ${safeDevId}: ${err.message}`);
         } else {
           logger.info(`Successfully published MQTT discovery for ${safeDevId}. Entity should appear in Home Assistant.`);
+          mqttClient.publish(`homeassistant/camera/${deviceId2}/availability`, "online", { retain: true });
+          mqttClient.publish(`homeassistant/camera/${deviceId2}/state`, "idle", { retain: true });
         }
       });
     } else {
