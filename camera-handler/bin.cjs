@@ -52677,6 +52677,36 @@ var Handlers = {
 // discovery.ts
 var import_node_dgram2 = require("dgram");
 var import_node_events2 = __toESM(require("events"), 1);
+
+// package.json
+var package_default = {
+  type: "module",
+  version: "0.0.31",
+  scripts: {
+    test: "mocha tests",
+    tsc: "tsc",
+    build: "esbuild cmd/bin.ts  --bundle --platform=node --outfile=dist/bin.cjs --target=node12 --loader:.gz=binary --loader:.html=text"
+  },
+  devDependencies: {
+    "@types/node": "^22.13.11",
+    "@types/yargs": "^17.0.32",
+    esbuild: "^0.20.2",
+    mocha: "^10.2.0",
+    "ts-node": "^10.9.2",
+    typescript: "^5.3.3"
+  },
+  dependencies: {
+    mqtt: "^5.10.4",
+    winston: "^3.13.0",
+    yaml: "^2.4.2",
+    yargs: "^17.7.2"
+  },
+  engines: {
+    node: ">=16.0"
+  }
+};
+
+// discovery.ts
 var sanitizeForMqtt = (id) => {
   return id.replace(/[\s+#\/]/g, "_");
 };
@@ -52804,13 +52834,13 @@ ${err.stack}`);
     devicesDiscovered[safeDevId] = true;
     logger.info(`Discovered new camera: ID=${safeDevId} (Original: ${dev.devId}) at ${rinfo.address}`);
     if (mqttClient && mqttClient.connected) {
-      const deviceId = `cam_reverse_${safeDevId}`;
+      const deviceId = `yz-${safeDevId}`;
       const configTopic = `homeassistant/camera/${deviceId}/config`;
       const hostIpForMqtt = "192.168.1.47";
       const baseUrl = `http://${hostIpForMqtt}:5000/camera/${dev.devId}`;
       const configPayload = {
         // Identification
-        name: `CamReverse ${dev.devId}`,
+        name: `Camera ${dev.devId}`,
         // User-friendly name
         unique_id: deviceId,
         // Unique ID for this camera entity
@@ -52820,15 +52850,18 @@ ${err.stack}`);
         mjpeg_url: baseUrl,
         still_image_url: baseUrl,
         // Often the same URL works for still images
+        username: "admin",
+        // Optional: Username for authentication
+        password: "6666",
+        // Optional: Password for authentication
         // Linking to Device Registry
         device: {
-          identifiers: [deviceId],
+          identifiers: ["camera-handler"],
           // Unique identifier for the device
-          name: `CamReverse Camera ${dev.devId}`,
-          manufacturer: "cam-reverse-addon",
-          model: "Reversed Stream",
-          sw_version: "0.0.1"
-          // Optional: Add addon version
+          name: `X9/A5 Camera Handler`,
+          manufacturer: "Yeon",
+          model: "Blade Camera",
+          sw_version: package_default.version || "0.0.31"
           // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
         }
         // Optional: Availability tracking (requires publishing to availability_topic)
@@ -53323,24 +53356,24 @@ var serveHttp = (port) => {
     const headers = req.headers;
     const ingressPath = headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "";
     const basePath = inHass2 && ingressPath ? ingressPath : "";
-    console.log(
+    logger.debug(
       `[${(/* @__PURE__ */ new Date()).toISOString()}] Request IN: ${req.method} ${requestUrl} - BasePath Detected: '${basePath}'`
     );
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
       const devId = url.pathname.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 5 : 2];
-      console.log(
+      logger.debug(
         `[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /ui/ request for ID: ${devId} (BasePath: ${basePath})`
       );
       const session = sessions2[devId];
       if (!session) {
-        console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR: Session not found for /ui/ devId: ${devId}`);
+        logger.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR: Session not found for /ui/ devId: ${devId}`);
         res.writeHead(404);
         res.end("Invalid ID");
         return;
       }
       if (!session.connected) {
-        console.warn(`[${(/* @__PURE__ */ new Date()).toISOString()}] WARN: Session offline for /ui/ devId: ${devId}`);
+        logger.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] WARN: Session offline for /ui/ devId: ${devId}`);
         res.writeHead(503);
         res.end("Camera is offline");
         return;
@@ -53393,7 +53426,7 @@ var serveHttp = (port) => {
       return;
     } else if (req.url.startsWith("/camera/")) {
       let devId = requestUrl.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} (BasePath: ${basePath})`);
+      logger.debug(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} (BasePath: ${basePath})`);
       let s = sessions2[devId];
       if (s === void 0) {
         console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] Camera ${devId} not discovered`);
@@ -53413,15 +53446,15 @@ var serveHttp = (port) => {
           responses[devId] = [];
         }
         responses[devId].push(res);
-        console.log(
+        logger.debug(
           `[${(/* @__PURE__ */ new Date()).toISOString()}] Added response to listeners for ${devId}. Count: ${responses[devId].length}`
         );
         res.on("close", () => {
-          console.log(
+          logger.debug(
             `[${(/* @__PURE__ */ new Date()).toISOString()}] MJPEG stream response closed for camera ${devId}. WritableEnded=${res.writableEnded}. Destroyed=${res.destroyed}.`
           );
           responses[devId] = responses[devId].filter((r) => r !== res);
-          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
+          logger.debug(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
         });
         res.on("error", (err) => {
           console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR on MJPEG response stream for ${devId}: ${err.message}`);
@@ -53442,7 +53475,7 @@ var serveHttp = (port) => {
       return;
     } else if (req.url.startsWith("/discover")) {
       logger.info("Discovery triggered by client.");
-      console.log("DEBUG: Starting initial device discovery...");
+      logger.debug("DEBUG: Starting initial device discovery...");
       const devEv2 = inHass2 ? discoverDevices(config2.discovery_ips, getMqttClient()) : discoverDevices(config2.discovery_ips);
       devEv2.on("discover", (rinfo, dev) => {
         logger.info(`Discovered camera ${dev.devId} at ${rinfo.address}`);
@@ -53757,16 +53790,16 @@ Content-Length: ${assembled.length}\r
       );
       (_a2 = responses[s.devName]) == null ? void 0 : _a2.forEach((res, index) => {
         if (!res.writable || res.destroyed || res.writableEnded) {
-          console.log(
+          logger.debug(
             `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Skipping write to listener ${index} - stream not writable/destroyed (writable:${res.writable}, destroyed:${res.destroyed}, ended:${res.writableEnded}).`
           );
           return;
         }
         try {
-          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Attempting write to listener ${index}`);
+          logger.debug(`[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Attempting write to listener ${index}`);
           res.write(header);
           res.write(assembled);
-          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Write successful for listener ${index}`);
+          logger.debug(`[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Write successful for listener ${index}`);
         } catch (writeError) {
           console.error(
             `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: ERROR writing to listener ${index}: ${writeError.message}. Removing listener.`
@@ -53795,13 +53828,13 @@ Content-Length: ${assembled.length}\r
       });
     }
   });
-  logger.info(`Starting HTTP server on port ${port}`);
+  logger.info(`Starting CameraHandler v${package_default.version} on port ${port}`);
   server.listen(port);
   process.on("SIGTERM", () => {
-    console.log("DEBUG: SIGTERM signal received. Closing MQTT client and server.");
+    logger.debug("DEBUG: SIGTERM signal received. Closing MQTT client and server.");
     closeMqtt();
     server.close(() => {
-      console.log("DEBUG: HTTP server closed.");
+      console.log("HTTP server closed.");
       process.exit(0);
     });
   });
