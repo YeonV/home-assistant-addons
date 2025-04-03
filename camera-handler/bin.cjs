@@ -53325,7 +53325,7 @@ var serveHttp = (port) => {
     );
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const devId = url.pathname.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 3 : 2];
+      const devId = url.pathname.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 5 : 2];
       const session = sessions2[devId];
       if (!session) {
         console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR: Session not found for /ui/ devId: ${devId}`);
@@ -53386,7 +53386,7 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = requestUrl.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 3 : 2];
+      let devId = requestUrl.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
       console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
       let s = sessions2[devId];
       if (s === void 0) {
@@ -53760,9 +53760,11 @@ Content-Length: ${assembled.length}\r
 `
       );
       const listenerCount = ((_a2 = responses[s.devName]) == null ? void 0 : _a2.length) || 0;
-      console.log(
-        `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME for ${s.devName}. Listeners: ${listenerCount}. Frame size: ${assembled.length}`
-      );
+      if (listenerCount > 0) {
+        console.log(
+          `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME for ${s.devName}. Listeners: ${listenerCount}. Frame size: ${assembled.length}`
+        );
+      }
       (_b2 = responses[s.devName]) == null ? void 0 : _b2.forEach((res, index) => {
         if (!res.writable || res.destroyed || res.writableEnded) {
           console.log(
