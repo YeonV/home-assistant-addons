@@ -52680,6 +52680,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 var sanitizeForMqtt = (id) => {
   return id.replace(/[\s+#\/]/g, "_");
 };
+var inHass = process.env.MQTT_HOST.length > 0;
 var handleIncomingPunch = (msg, ee, rinfo) => {
   const ab = new Uint8Array(msg).buffer;
   const dv = new DataView(ab);
@@ -52794,44 +52795,7 @@ ${err.stack}`);
   });
   ee.on("discover", (rinfo, dev) => {
     const safeDevId = sanitizeForMqtt(dev.devId);
-    const deviceId = `cam_reverse_${safeDevId}`;
-    const configTopic = `homeassistant/camera/${deviceId}/config`;
-    const hostIpForMqtt = "192.168.1.47";
-    const baseUrl = `http://${hostIpForMqtt}:5000/camera/${dev.devId}`;
-    const configPayload = {
-      // Identification
-      name: `CamReverse ${dev.devId}`,
-      // User-friendly name
-      unique_id: deviceId,
-      // Unique ID for this camera entity
-      // Platform specific config (MJPEG)
-      topic: `homeassistant/camera/${deviceId}/state`,
-      // Dummy state topic (optional but good practice)
-      mjpeg_url: baseUrl,
-      still_image_url: baseUrl,
-      // Often the same URL works for still images
-      // Linking to Device Registry
-      device: {
-        identifiers: [deviceId],
-        // Unique identifier for the device
-        name: `CamReverse Camera ${dev.devId}`,
-        manufacturer: "cam-reverse-addon",
-        model: "Reversed Stream",
-        sw_version: "0.0.1"
-        // Optional: Add addon version
-        // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
-      }
-      // Optional: Availability tracking (requires publishing to availability_topic)
-      // availability_topic: `homeassistant/camera/${deviceId}/availability`,
-      // payload_available: "online",
-      // payload_not_available: "offline",
-    };
-    const payloadString = JSON.stringify(configPayload);
-    if (mqttClient && mqttClient.connected && payloadString.length > 100) {
-      mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
-      });
-    } else {
-      logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
+    if (inHass) {
     }
     if (devicesDiscovered[safeDevId]) {
       logger.debug(`Camera ${safeDevId} (${dev.devId}) at ${rinfo.address} already processed, ignoring.`);
@@ -52840,6 +52804,45 @@ ${err.stack}`);
     devicesDiscovered[safeDevId] = true;
     logger.info(`Discovered new camera: ID=${safeDevId} (Original: ${dev.devId}) at ${rinfo.address}`);
     if (mqttClient && mqttClient.connected) {
+      const deviceId = `cam_reverse_${safeDevId}`;
+      const configTopic = `homeassistant/camera/${deviceId}/config`;
+      const hostIpForMqtt = "192.168.1.47";
+      const baseUrl = `http://${hostIpForMqtt}:5000/camera/${dev.devId}`;
+      const configPayload = {
+        // Identification
+        name: `CamReverse ${dev.devId}`,
+        // User-friendly name
+        unique_id: deviceId,
+        // Unique ID for this camera entity
+        // Platform specific config (MJPEG)
+        topic: `homeassistant/camera/${deviceId}/state`,
+        // Dummy state topic (optional but good practice)
+        mjpeg_url: baseUrl,
+        still_image_url: baseUrl,
+        // Often the same URL works for still images
+        // Linking to Device Registry
+        device: {
+          identifiers: [deviceId],
+          // Unique identifier for the device
+          name: `CamReverse Camera ${dev.devId}`,
+          manufacturer: "cam-reverse-addon",
+          model: "Reversed Stream",
+          sw_version: "0.0.1"
+          // Optional: Add addon version
+          // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
+        }
+        // Optional: Availability tracking (requires publishing to availability_topic)
+        // availability_topic: `homeassistant/camera/${deviceId}/availability`,
+        // payload_available: "online",
+        // payload_not_available: "offline",
+      };
+      const payloadString = JSON.stringify(configPayload);
+      if (mqttClient && mqttClient.connected && payloadString.length > 100) {
+        mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+        });
+      } else {
+        logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
+      }
       if (payloadString.length > 100) {
         logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic}`);
         mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
@@ -53300,7 +53303,7 @@ var asd_default = `<!DOCTYPE html>
 `;
 
 // http_server.ts
-var inHass = process.env.MQTT_HOST.length > 0;
+var inHass2 = process.env.MQTT_HOST.length > 0;
 var BOUNDARY = "a very good boundary line";
 var responses = {};
 var audioResponses = {};
@@ -53312,20 +53315,24 @@ var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
 }, {});
 var cameraName = (id) => config2.cameras[id].alias || id;
 var serveHttp = (port) => {
-  if (inHass)
+  if (inHass2)
     initializeMqtt();
   const server = import_node_http.default.createServer((req, res) => {
     var _a2;
     const requestUrl = req.url || "/";
     const headers = req.headers;
     const ingressPath = headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "";
-    const basePath = ingressPath ? ingressPath : "";
+    const basePath = inHass2 && ingressPath ? ingressPath : "";
     console.log(
       `[${(/* @__PURE__ */ new Date()).toISOString()}] Request IN: ${req.method} ${requestUrl} - BasePath Detected: '${basePath}'`
     );
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const devId = url.pathname.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 5 : 2];
+      const devId = url.pathname.split("/")[2];
+      const devId2 = url.pathname.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 5 : 2];
+      console.log(
+        `[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /ui/ request for ID: ${devId} vs ${devId2} (BasePath: ${basePath})`
+      );
       const session = sessions2[devId];
       if (!session) {
         console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR: Session not found for /ui/ devId: ${devId}`);
@@ -53340,7 +53347,7 @@ var serveHttp = (port) => {
         return;
       }
       const cameraData = config2.cameras[devId];
-      const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, cameraData.audio ? "true" : "false").replace(/"\/camera\/\$\{id\}"/g, `"/${basePath.length > 0 ? basePath : ""}camera/${devId}"`);
+      const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, cameraData.audio ? "true" : "false");
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(ui2);
       return;
@@ -53386,7 +53393,7 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = requestUrl.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
+      let devId = requestUrl.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
       console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
       let s = sessions2[devId];
       if (s === void 0) {
@@ -53447,7 +53454,7 @@ var serveHttp = (port) => {
     } else if (req.url.startsWith("/discover")) {
       logger.info("Discovery triggered by client.");
       console.log("DEBUG: Starting initial device discovery...");
-      const devEv2 = discoverDevices(config2.discovery_ips, getMqttClient());
+      const devEv2 = inHass2 ? discoverDevices(config2.discovery_ips, getMqttClient()) : discoverDevices(config2.discovery_ips);
       devEv2.on("discover", (rinfo, dev) => {
         logger.info(`Discovered camera ${dev.devId} at ${rinfo.address}`);
       });
