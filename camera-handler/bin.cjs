@@ -52796,7 +52796,8 @@ ${err.stack}`);
     const safeDevId = sanitizeForMqtt(dev.devId);
     const deviceId = `cam_reverse_${safeDevId}`;
     const configTopic = `homeassistant/camera/${deviceId}/config`;
-    const baseUrl = `http://localhost:5000/camera/${dev.devId}`;
+    const hostIpForMqtt = "192.168.1.47";
+    const baseUrl = `http://${hostIpForMqtt}:5000/camera/${dev.devId}`;
     const configPayload = {
       // Identification
       name: `CamReverse ${dev.devId}`,
