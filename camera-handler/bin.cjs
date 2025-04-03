@@ -53155,7 +53155,7 @@ var asd_default = `<!DOCTYPE html>
       // Back Button
       const backButton = document.getElementById('backButton');
       backButton.addEventListener('click', () => {
-      	window.location.href = '/\${basePath}'; // Redirect to the all-camera view
+      	window.history.back();
       });
 
       // Dark Mode Toggle
@@ -53393,8 +53393,9 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = requestUrl.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
+      let devId = requestUrl.split("/")[2];
+      let devId2 = requestUrl.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} vs ${devId2} (BasePath: ${basePath})`);
       let s = sessions2[devId];
       if (s === void 0) {
         console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] Camera ${devId} not discovered`);
@@ -53752,7 +53753,7 @@ var serveHttp = (port) => {
     sessions2[dev.devId] = s;
     config2.cameras[dev.devId] = { rotate: 0, mirror: false, audio: true, ...config2.cameras[dev.devId] || {} };
     s.eventEmitter.on("frame", () => {
-      var _a2, _b2;
+      var _a2;
       let orientation = config2.cameras[dev.devId].rotate;
       orientation = config2.cameras[dev.devId].mirror ? oMapMirror[orientation] : oMap[orientation];
       const exifSegment = orientations[orientation];
@@ -53766,13 +53767,7 @@ Content-Length: ${assembled.length}\r
 \r
 `
       );
-      const listenerCount = ((_a2 = responses[s.devName]) == null ? void 0 : _a2.length) || 0;
-      if (listenerCount > 0) {
-        console.log(
-          `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME for ${s.devName}. Listeners: ${listenerCount}. Frame size: ${assembled.length}`
-        );
-      }
-      (_b2 = responses[s.devName]) == null ? void 0 : _b2.forEach((res, index) => {
+      (_a2 = responses[s.devName]) == null ? void 0 : _a2.forEach((res, index) => {
         if (!res.writable || res.destroyed || res.writableEnded) {
           console.log(
             `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Skipping write to listener ${index} - stream not writable/destroyed (writable:${res.writable}, destroyed:${res.destroyed}, ended:${res.writableEnded}).`
