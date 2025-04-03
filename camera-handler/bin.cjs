@@ -53397,9 +53397,13 @@ var serveHttp = (port) => {
       }
       res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
       responses[devId].push(res);
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Added response to listeners for ${devId}. Count: ${responses[devId].length}`);
       res.on("close", () => {
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] MJPEG stream response closed for camera ${devId}. WritableEnded=${res.writableEnded}. Destroyed=${res.destroyed}.`);
         responses[devId] = responses[devId].filter((r) => r !== res);
         logger.info(`Video stream closed for camera ${devId}`);
+        responses[devId] = responses[devId].filter((r) => r !== res);
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
       });
     } else if (req.url.startsWith("/discover")) {
       logger.info("Discovery triggered by client.");
@@ -53713,9 +53717,15 @@ Content-Length: ${assembled.length}\r
 Content-Type: image/jpeg\r
 \r
 `);
-      responses[dev.devId].forEach((res) => {
-        res.write(header);
-        res.write(assembled);
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] >>> Writing frame for ${s.devName} to ${responses[s.devName].length} listeners. Size: ${assembled.length}`);
+      responses[s.devName].forEach((res) => {
+        try {
+          if (!res.writableEnded) {
+            res.write(header);
+            res.write(assembled);
+          }
+        } catch (writeError) {
+        }
       });
     });
     s.eventEmitter.on("disconnect", () => {
