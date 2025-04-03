@@ -52796,7 +52796,7 @@ ${err.stack}`);
     const safeDevId = sanitizeForMqtt(dev.devId);
     const deviceId = `cam_reverse_${safeDevId}`;
     const configTopic = `homeassistant/camera/${deviceId}/config`;
-    const baseUrl = `http://camera_handler:5000/camera/${dev.devId}`;
+    const baseUrl = `http://localhost:5000/camera/${dev.devId}`;
     const configPayload = {
       // Identification
       name: `CamReverse ${dev.devId}`,
@@ -52827,11 +52827,9 @@ ${err.stack}`);
     };
     const payloadString = JSON.stringify(configPayload);
     if (mqttClient && mqttClient.connected && payloadString.length > 100) {
-      console.log(`DEBUG: Using existing MQTT client to publish for ${safeDevId}`);
       mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
       });
     } else {
-      console.log(`DEBUG: MQTT client not available or connected for discovery of ${safeDevId}`);
       logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
     }
     if (devicesDiscovered[safeDevId]) {
