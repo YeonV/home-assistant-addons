@@ -53743,6 +53743,7 @@ var serveHttp = (port) => {
     sessions2[dev.devId] = s;
     config2.cameras[dev.devId] = { rotate: 0, mirror: false, audio: true, ...config2.cameras[dev.devId] || {} };
     s.eventEmitter.on("frame", () => {
+      var _a2, _b2;
       let orientation = config2.cameras[dev.devId].rotate;
       orientation = config2.cameras[dev.devId].mirror ? oMapMirror[orientation] : oMap[orientation];
       const exifSegment = orientations[orientation];
@@ -53756,13 +53757,32 @@ Content-Length: ${assembled.length}\r
 \r
 `
       );
-      responses[s.devName].forEach((res) => {
+      const listenerCount = ((_a2 = responses[s.devName]) == null ? void 0 : _a2.length) || 0;
+      console.log(
+        `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME for ${s.devName}. Listeners: ${listenerCount}. Frame size: ${assembled.length}`
+      );
+      (_b2 = responses[s.devName]) == null ? void 0 : _b2.forEach((res, index) => {
+        if (!res.writable || res.destroyed || res.writableEnded) {
+          console.log(
+            `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Skipping write to listener ${index} - stream not writable/destroyed (writable:${res.writable}, destroyed:${res.destroyed}, ended:${res.writableEnded}).`
+          );
+          return;
+        }
         try {
-          if (!res.writableEnded) {
-            res.write(header);
-            res.write(assembled);
-          }
+          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Attempting write to listener ${index}`);
+          res.write(header);
+          res.write(assembled);
+          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: Write successful for listener ${index}`);
         } catch (writeError) {
+          console.error(
+            `[${(/* @__PURE__ */ new Date()).toISOString()}] FRAME ${s.devName}: ERROR writing to listener ${index}: ${writeError.message}. Removing listener.`
+          );
+          if (responses[s.devName]) {
+            responses[s.devName] = responses[s.devName].filter((r) => r !== res);
+          }
+          if (!res.destroyed) {
+            res.destroy(writeError);
+          }
         }
       });
     });
