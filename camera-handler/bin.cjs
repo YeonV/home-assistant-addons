@@ -53384,52 +53384,61 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = requestUrl.split("/")[2];
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} (TEST MODE)`);
+      let devId = requestUrl.split("/")[requestUrl.startsWith(basePath + "/camera/") ? 3 : 2];
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
+      let s = sessions2[devId];
+      if (s === void 0) {
+        console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] Camera ${devId} not discovered`);
+        res.writeHead(404);
+        res.end(`Camera ${devId} not discovered`);
+        return;
+      }
+      if (!s.connected) {
+        console.warn(`[${(/* @__PURE__ */ new Date()).toISOString()}] Camera ${devId} offline`);
+        res.writeHead(503);
+        res.end(`Camera ${devId} offline`);
+        return;
+      }
       try {
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Setting headers for MJPEG stream for ${devId} (TEST MODE)`);
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Setting headers for MJPEG stream for ${devId}`);
         res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
         res.setHeader("Pragma", "no-cache");
-        res.setHeader("Connection", "close");
+        res.setHeader("Expires", "0");
         res.writeHead(200);
-        let counter = 0;
-        const intervalId = setInterval(() => {
-          if (res.writableEnded || res.destroyed) {
-            console.log(
-              `[${(/* @__PURE__ */ new Date()).toISOString()}] TEST stream ended or destroyed for ${devId}, stopping interval.`
-            );
-            clearInterval(intervalId);
-            return;
-          }
-          counter++;
-          const payload = `Test Frame ${counter} for ${devId}`;
-          const part = `\r
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Sent initial headers for ${devId}`);
+        res.write(`\r
 --${BOUNDARY}\r
-Content-Type: text/plain\r
-Content-Length: ${payload.length}\r
-\r
-${payload}`;
-          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] TEST Writing part ${counter} for ${devId}`);
-          res.write(part);
-        }, 1e3);
+`);
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Sent initial boundary for ${devId}`);
+        if (!responses[devId]) {
+          responses[devId] = [];
+        }
+        responses[devId].push(res);
+        console.log(
+          `[${(/* @__PURE__ */ new Date()).toISOString()}] Added response to listeners for ${devId}. Count: ${responses[devId].length}`
+        );
         res.on("close", () => {
-          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] TEST stream response closed for camera ${devId}.`);
-          clearInterval(intervalId);
+          console.log(
+            `[${(/* @__PURE__ */ new Date()).toISOString()}] MJPEG stream response closed for camera ${devId}. WritableEnded=${res.writableEnded}. Destroyed=${res.destroyed}.`
+          );
+          responses[devId] = responses[devId].filter((r) => r !== res);
+          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
         });
         res.on("error", (err) => {
-          console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR on TEST stream for ${devId}: ${err.message}`);
-          clearInterval(intervalId);
+          console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR on MJPEG response stream for ${devId}: ${err.message}`);
+          responses[devId] = responses[devId].filter((r) => r !== res);
         });
       } catch (streamError) {
         console.error(
-          `[${(/* @__PURE__ */ new Date()).toISOString()}] CATCH ERROR setting up TEST stream for ${devId}: ${streamError.message}`
+          `[${(/* @__PURE__ */ new Date()).toISOString()}] CATCH ERROR setting up MJPEG stream for ${devId}: ${streamError.message}`
         );
         if (!res.headersSent) {
           res.writeHead(500);
-          res.end("Server error setting up test stream.");
-        } else {
-          res.end();
+        }
+        res.end("Server error setting up MJPEG stream.");
+        if (responses[devId]) {
+          responses[devId] = responses[devId].filter((r) => r !== res);
         }
       }
       return;
