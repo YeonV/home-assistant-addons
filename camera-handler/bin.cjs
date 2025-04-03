@@ -53300,6 +53300,7 @@ var asd_default = `<!DOCTYPE html>
 `;
 
 // http_server.ts
+var inHass = process.env.MQTT_HOST.length > 0;
 var BOUNDARY = "a very good boundary line";
 var responses = {};
 var audioResponses = {};
@@ -53311,8 +53312,8 @@ var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
 }, {});
 var cameraName = (id) => config2.cameras[id].alias || id;
 var serveHttp = (port) => {
-  console.log("YZ - ", process.env.HASSIO_INGRESS_PATH, process.env.MQTT_HOST, process.env.MQTT_PORT);
-  initializeMqtt();
+  if (inHass)
+    initializeMqtt();
   const server = import_node_http.default.createServer((req, res) => {
     var _a2;
     const requestUrl = req.url || "/";
@@ -53324,7 +53325,7 @@ var serveHttp = (port) => {
     );
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const devId = url.pathname.split("/")[requestUrl.startsWith(basePath + "/ui/") ? 3 : 2];
+      const devId = url.pathname.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 3 : 2];
       const session = sessions2[devId];
       if (!session) {
         console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR: Session not found for /ui/ devId: ${devId}`);
@@ -53339,7 +53340,7 @@ var serveHttp = (port) => {
         return;
       }
       const cameraData = config2.cameras[devId];
-      const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, cameraData.audio ? "true" : "false").replace(/"\/camera\/\$\{id\}"/g, `"${basePath}/camera/${devId}"`);
+      const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, cameraData.audio ? "true" : "false").replace(/"\/camera\/\$\{id\}"/g, `"/${basePath.length > 0 ? basePath : ""}camera/${devId}"`);
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(ui2);
       return;
@@ -53385,7 +53386,7 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = requestUrl.split("/")[requestUrl.startsWith(basePath + "/camera/") ? 3 : 2];
+      let devId = requestUrl.split("/")[inHass && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 3 : 2];
       console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
       let s = sessions2[devId];
       if (s === void 0) {
