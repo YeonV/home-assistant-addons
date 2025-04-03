@@ -52681,7 +52681,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.32",
+  version: "0.0.33",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -53671,7 +53671,8 @@ var serveHttp = (port) => {
                 <div><span class="info-title">Name:</span> ${cameraName(id)}</div>
                 <div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${id}</span><button class="edit-friendly-name" data-id="${id}">&#x270E;</button></div>
                 <div><span class="info-title">IP:</span> ${session.dst_ip}</div>
-                
+                ${inHass2 ? `<a href="https://my.home-assistant.io/redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a>
+                <code>http://localhost:5000/camera/${id}</code>` : ""}
               </div>
               <div class="grid-name" data-id="${id}">${cameraName(id)}</div>
             </div>
@@ -53680,6 +53681,7 @@ var serveHttp = (port) => {
       });
       res.write(`
         </div>
+       
         <script>        
           const basePath = "${basePath}";
           // Load Friendly Names from localStorage
