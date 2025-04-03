@@ -53311,6 +53311,7 @@ var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
 }, {});
 var cameraName = (id) => config2.cameras[id].alias || id;
 var serveHttp = (port) => {
+  console.log("YZ - ", process.env.HASSIO_INGRESS_PATH, process.env.MQTT_HOST, process.env.MQTT_PORT);
   initializeMqtt();
   const server = import_node_http.default.createServer((req, res) => {
     var _a2;
