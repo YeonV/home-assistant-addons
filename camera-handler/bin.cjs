@@ -52846,8 +52846,10 @@ ${err.stack}`);
         // payload_not_available: "offline",
       };
       const payloadString2 = JSON.stringify(configPayload);
-      console.log(payloadString2);
-      console.log("length:", payloadString2.length);
+      if (payloadString2.length < 1e3) {
+        logger.error(`Payload too short (${payloadString2.length} bytes) for ${safeDevId}. Check your config.`);
+        return;
+      }
       logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic2}`);
       mqttClient.publish(configTopic2, payloadString2, { retain: true, qos: 0 }, (err) => {
         if (err) {
