@@ -53410,17 +53410,7 @@ var serveHttp = (port) => {
         return;
       }
       try {
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Setting headers for MJPEG stream for ${devId}`);
         res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
-        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
-        res.writeHead(200);
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Sent initial headers for ${devId}`);
-        res.write(`\r
---${BOUNDARY}\r
-`);
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Sent initial boundary for ${devId}`);
         if (!responses[devId]) {
           responses[devId] = [];
         }
@@ -53736,7 +53726,7 @@ var serveHttp = (port) => {
       res.end();
     }
   });
-  let devEv = discoverDevices(config2.discovery_ips, getMqttClient());
+  let devEv = inHass2 ? discoverDevices(config2.discovery_ips, getMqttClient()) : discoverDevices(config2.discovery_ips);
   const startSession = (s) => {
     startVideoStream(s);
     logger.info(`Camera ${s.devName} is now ready to stream`);
