@@ -53311,26 +53311,32 @@ var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
 }, {});
 var cameraName = (id) => config2.cameras[id].alias || id;
 var serveHttp = (port) => {
-  console.log("DEBUG: Initializing MQTT client...");
   initializeMqtt();
   const server = import_node_http.default.createServer((req, res) => {
     var _a2;
+    const requestUrl = req.url || "/";
+    const headers = req.headers;
+    const ingressPath = headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "";
+    const basePath = ingressPath ? ingressPath : "";
+    console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Request IN: ${req.method} ${requestUrl} - BasePath Detected: '${basePath}'`);
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const devId = url.pathname.split("/")[2];
+      const devId = url.pathname.split("/")[requestUrl.startsWith(basePath + "/ui/") ? 3 : 2];
       const session = sessions2[devId];
       if (!session) {
-        res.writeHead(400);
+        console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR: Session not found for /ui/ devId: ${devId}`);
+        res.writeHead(404);
         res.end("Invalid ID");
         return;
       }
       if (!session.connected) {
-        res.writeHead(400);
+        console.warn(`[${(/* @__PURE__ */ new Date()).toISOString()}] WARN: Session offline for /ui/ devId: ${devId}`);
+        res.writeHead(503);
         res.end("Camera is offline");
         return;
       }
       const cameraData = config2.cameras[devId];
-      const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, cameraData.audio ? "true" : "false");
+      const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, cameraData.audio ? "true" : "false").replace(/"\/camera\/\$\{id\}"/g, `"${basePath}/camera/${devId}"`);
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(ui2);
       return;
@@ -53585,8 +53591,8 @@ var serveHttp = (port) => {
         const session = sessions2[id];
         const cameraData = config2.cameras[id];
         res.write(`
-          <a href="/ui/${id}?friendlyName=" class="camera-item" data-id="${id}">
-            <img src="/camera/${id}" alt="Camera ${cameraName(id)}">
+          <a href="${basePath}/ui/${id}?friendlyName=" class="camera-item" data-id="${id}">
+            <img src="${basePath}/camera/${id}" alt="Camera ${cameraName(id)}">
             <div class="camera-info">
               <div class="info-table">
                 <div><span class="info-title">ID:</span> ${id}</div>
@@ -53602,7 +53608,8 @@ var serveHttp = (port) => {
       });
       res.write(`
         </div>
-        <script>
+        <script>        
+          const basePath = "${basePath}";
           // Load Friendly Names from localStorage
           document.querySelectorAll('.camera-item').forEach(item => {
             const id = item.dataset.id;
@@ -53611,7 +53618,7 @@ var serveHttp = (port) => {
             document.querySelector(\`.grid-name[data-id="\${id}"]\`).innerText = friendlyName;
 
             // Update the href to include the friendlyName as a URL parameter
-            item.href = \`/ui/\${id}?friendlyName=\${encodeURIComponent(friendlyName)}\`;
+            item.href = \`${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(friendlyName)}\`;
           });
 
           // Edit Friendly Name
@@ -53626,7 +53633,7 @@ var serveHttp = (port) => {
                 document.querySelector(\`.grid-name[data-id="\${id}"]\`).innerText = newName;
 
                 // Update the href to include the new friendlyName
-                document.querySelector(\`.camera-item[data-id="\${id}"]\`).href = \`/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`;
+                document.querySelector(\`.camera-item[data-id="\${id}"]\`).href = \`${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`;
               }
             });
           });
@@ -53643,7 +53650,7 @@ var serveHttp = (port) => {
             // Discover Devices Button
           const discoverDevicesButton = document.getElementById('discoverDevices');
           discoverDevicesButton.addEventListener('click', () => {
-            fetch('/discover')
+            fetch('${basePath}/discover')
               .then(response => response.json())
               .then(data => {
                 alert(data.message); // Notify the user that discovery has started
