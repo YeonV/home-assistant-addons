@@ -53127,7 +53127,7 @@ var asd_default = `<!DOCTYPE html>
       <button id="darkModeToggle">&#128261;</button>
     </header>
     <div class="camera-view" id="cameraView">
-      <img src="/camera/\${id}" alt="Camera \${name}" id="cameraStream" />
+      <img src="\${basePath}/camera/\${id}" alt="Camera \${name}" id="cameraStream" />
       <div class="fullscreen-container" id="buttonBar">
         <button onclick="toggle_audio()" id="audio" disabled>Audio: disabled</button>
         <button onclick="fetch('/rotate/\${id}')">&#8634;</button>
@@ -53152,7 +53152,7 @@ var asd_default = `<!DOCTYPE html>
       // Back Button
       const backButton = document.getElementById('backButton');
       backButton.addEventListener('click', () => {
-      	window.location.href = '/'; // Redirect to the all-camera view
+      	window.location.href = '/\${basePath}'; // Redirect to the all-camera view
       });
 
       // Dark Mode Toggle
@@ -53318,7 +53318,9 @@ var serveHttp = (port) => {
     const headers = req.headers;
     const ingressPath = headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "";
     const basePath = ingressPath ? ingressPath : "";
-    console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Request IN: ${req.method} ${requestUrl} - BasePath Detected: '${basePath}'`);
+    console.log(
+      `[${(/* @__PURE__ */ new Date()).toISOString()}] Request IN: ${req.method} ${requestUrl} - BasePath Detected: '${basePath}'`
+    );
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
       const devId = url.pathname.split("/")[requestUrl.startsWith(basePath + "/ui/") ? 3 : 2];
@@ -53383,7 +53385,7 @@ var serveHttp = (port) => {
       return;
     } else if (req.url.startsWith("/camera/")) {
       let devId = req.url.split("/")[2];
-      logger.info(`Video stream requested for camera ${devId}`);
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
       let s = sessions2[devId];
       if (s === void 0) {
         res.writeHead(400);
@@ -53395,16 +53397,34 @@ var serveHttp = (port) => {
         res.end(`Camera ${devId} offline`);
         return;
       }
-      res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
-      responses[devId].push(res);
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Added response to listeners for ${devId}. Count: ${responses[devId].length}`);
-      res.on("close", () => {
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] MJPEG stream response closed for camera ${devId}. WritableEnded=${res.writableEnded}. Destroyed=${res.destroyed}.`);
-        responses[devId] = responses[devId].filter((r) => r !== res);
-        logger.info(`Video stream closed for camera ${devId}`);
-        responses[devId] = responses[devId].filter((r) => r !== res);
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
-      });
+      try {
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Setting headers for MJPEG stream for ${devId}`);
+        res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
+        res.setHeader("Pragma", "no-cache");
+        res.writeHead(200);
+        res.write(`\r
+--${BOUNDARY}\r
+`);
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Sent initial boundary for ${devId}`);
+        responses[devId].push(res);
+        console.log(
+          `[${(/* @__PURE__ */ new Date()).toISOString()}] Added response to listeners for ${devId}. Count: ${responses[devId].length}`
+        );
+        res.on("close", () => {
+          console.log(
+            `[${(/* @__PURE__ */ new Date()).toISOString()}] MJPEG stream response closed for camera ${devId}. WritableEnded=${res.writableEnded}. Destroyed=${res.destroyed}.`
+          );
+          responses[devId] = responses[devId].filter((r) => r !== res);
+          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
+        });
+        res.on("error", (err) => {
+          console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR on MJPEG response stream for ${devId}: ${err.message}`);
+          responses[devId] = responses[devId].filter((r) => r !== res);
+        });
+      } catch (streamError) {
+      }
+      return;
     } else if (req.url.startsWith("/discover")) {
       logger.info("Discovery triggered by client.");
       console.log("DEBUG: Starting initial device discovery...");
@@ -53711,13 +53731,17 @@ var serveHttp = (port) => {
       const exifSegment = orientations[orientation];
       const jpegHeader = addExifToJpeg(s.curImage[0], exifSegment);
       const assembled = Buffer.concat([jpegHeader, ...s.curImage.slice(1)]);
-      const header = Buffer.from(`\r
+      const header = Buffer.from(
+        `\r
 --${BOUNDARY}\r
 Content-Length: ${assembled.length}\r
 Content-Type: image/jpeg\r
 \r
-`);
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] >>> Writing frame for ${s.devName} to ${responses[s.devName].length} listeners. Size: ${assembled.length}`);
+`
+      );
+      console.log(
+        `[${(/* @__PURE__ */ new Date()).toISOString()}] >>> Writing frame for ${s.devName} to ${responses[s.devName].length} listeners. Size: ${assembled.length}`
+      );
       responses[s.devName].forEach((res) => {
         try {
           if (!res.writableEnded) {
