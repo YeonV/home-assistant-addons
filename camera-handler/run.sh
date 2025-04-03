@@ -47,10 +47,10 @@ else
 fi
 
 # === SIXTH STEP: Dump environment to see results ===
-bashio::log.info "--- run.sh: Dumping environment post-query/export ---"
-bashio::log.info "--------------------- ENVIRONMENT VARIABLES START ---------------------"
-env | sort
-bashio::log.info "--------------------- ENVIRONMENT VARIABLES END -----------------------"
+# bashio::log.info "--- run.sh: Dumping environment post-query/export ---"
+# bashio::log.info "--------------------- ENVIRONMENT VARIABLES START ---------------------"
+# env | sort
+# bashio::log.info "--------------------- ENVIRONMENT VARIABLES END -----------------------"
 
 # === SEVENTH STEP: Check Node installation ===
 bashio::log.info "--- run.sh: Checking node ---"
