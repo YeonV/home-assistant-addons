@@ -53739,9 +53739,6 @@ Content-Type: image/jpeg\r
 \r
 `
       );
-      console.log(
-        `[${(/* @__PURE__ */ new Date()).toISOString()}] >>> Writing frame for ${s.devName} to ${responses[s.devName].length} listeners. Size: ${assembled.length}`
-      );
       responses[s.devName].forEach((res) => {
         try {
           if (!res.writableEnded) {
