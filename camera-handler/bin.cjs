@@ -52796,10 +52796,37 @@ ${err.stack}`);
     const safeDevId = sanitizeForMqtt(dev.devId);
     const deviceId = `cam_reverse_${safeDevId}`;
     const configTopic = `homeassistant/camera/${deviceId}/config`;
-    const payloadString = JSON.stringify({
-      // ... your payload structure ...
-    });
-    if (mqttClient && mqttClient.connected) {
+    const baseUrl = `http://camera_handler:5000/camera/${dev.devId}`;
+    const configPayload = {
+      // Identification
+      name: `CamReverse ${dev.devId}`,
+      // User-friendly name
+      unique_id: deviceId,
+      // Unique ID for this camera entity
+      // Platform specific config (MJPEG)
+      topic: `homeassistant/camera/${deviceId}/state`,
+      // Dummy state topic (optional but good practice)
+      mjpeg_url: baseUrl,
+      still_image_url: baseUrl,
+      // Often the same URL works for still images
+      // Linking to Device Registry
+      device: {
+        identifiers: [deviceId],
+        // Unique identifier for the device
+        name: `CamReverse Camera ${dev.devId}`,
+        manufacturer: "cam-reverse-addon",
+        model: "Reversed Stream",
+        sw_version: "0.0.1"
+        // Optional: Add addon version
+        // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
+      }
+      // Optional: Availability tracking (requires publishing to availability_topic)
+      // availability_topic: `homeassistant/camera/${deviceId}/availability`,
+      // payload_available: "online",
+      // payload_not_available: "offline",
+    };
+    const payloadString = JSON.stringify(configPayload);
+    if (mqttClient && mqttClient.connected && payloadString.length > 100) {
       console.log(`DEBUG: Using existing MQTT client to publish for ${safeDevId}`);
       mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
       });
@@ -52814,50 +52841,18 @@ ${err.stack}`);
     devicesDiscovered[safeDevId] = true;
     logger.info(`Discovered new camera: ID=${safeDevId} (Original: ${dev.devId}) at ${rinfo.address}`);
     if (mqttClient && mqttClient.connected) {
-      const deviceId2 = `cam_reverse_${safeDevId}`;
-      const baseUrl = `http://camera_handler:5000/camera/${dev.devId}`;
-      const configTopic2 = `homeassistant/camera/${deviceId2}/config`;
-      const configPayload = {
-        // Identification
-        name: `CamReverse ${dev.devId}`,
-        // User-friendly name
-        unique_id: deviceId2,
-        // Unique ID for this camera entity
-        // Platform specific config (MJPEG)
-        topic: `homeassistant/camera/${deviceId2}/state`,
-        // Dummy state topic (optional but good practice)
-        mjpeg_url: baseUrl,
-        still_image_url: baseUrl,
-        // Often the same URL works for still images
-        // Linking to Device Registry
-        device: {
-          identifiers: [deviceId2],
-          // Unique identifier for the device
-          name: `CamReverse Camera ${dev.devId}`,
-          manufacturer: "cam-reverse-addon",
-          model: "Reversed Stream",
-          sw_version: "0.0.1"
-          // Optional: Add addon version
-          // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
-        }
-        // Optional: Availability tracking (requires publishing to availability_topic)
-        // availability_topic: `homeassistant/camera/${deviceId}/availability`,
-        // payload_available: "online",
-        // payload_not_available: "offline",
-      };
-      const payloadString2 = JSON.stringify(configPayload);
-      if (payloadString2.length > 100) {
-        logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic2}`);
+      if (payloadString.length > 100) {
+        logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic}`);
+        mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+          if (err) {
+            logger.error(`Failed to publish MQTT discovery for ${safeDevId}: ${err.message}`);
+          } else {
+            logger.info(`Successfully published MQTT discovery for ${safeDevId}. Entity should appear in Home Assistant.`);
+            mqttClient.publish(`homeassistant/camera/${deviceId}/availability`, "online", { retain: true });
+            mqttClient.publish(`homeassistant/camera/${deviceId}/state`, "idle", { retain: true });
+          }
+        });
       }
-      mqttClient.publish(configTopic2, payloadString2, { retain: true, qos: 0 }, (err) => {
-        if (err) {
-          logger.error(`Failed to publish MQTT discovery for ${safeDevId}: ${err.message}`);
-        } else {
-          logger.info(`Successfully published MQTT discovery for ${safeDevId}. Entity should appear in Home Assistant.`);
-          mqttClient.publish(`homeassistant/camera/${deviceId2}/availability`, "online", { retain: true });
-          mqttClient.publish(`homeassistant/camera/${deviceId2}/state`, "idle", { retain: true });
-        }
-      });
     } else {
       logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
       logger.info(`Manual configuration needed for camera ${dev.devId} at ${rinfo.address}:`);
