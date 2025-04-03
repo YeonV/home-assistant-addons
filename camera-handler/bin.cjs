@@ -53384,45 +53384,53 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = req.url.split("/")[2];
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId}`);
-      let s = sessions2[devId];
-      if (s === void 0) {
-        res.writeHead(400);
-        res.end(`Camera ${devId} not discovered`);
-        return;
-      }
-      if (!s.connected) {
-        res.writeHead(400);
-        res.end(`Camera ${devId} offline`);
-        return;
-      }
+      let devId = requestUrl.split("/")[2];
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} (TEST MODE)`);
       try {
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Setting headers for MJPEG stream for ${devId}`);
+        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Setting headers for MJPEG stream for ${devId} (TEST MODE)`);
         res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
         res.setHeader("Pragma", "no-cache");
+        res.setHeader("Connection", "close");
         res.writeHead(200);
-        res.write(`\r
+        let counter = 0;
+        const intervalId = setInterval(() => {
+          if (res.writableEnded || res.destroyed) {
+            console.log(
+              `[${(/* @__PURE__ */ new Date()).toISOString()}] TEST stream ended or destroyed for ${devId}, stopping interval.`
+            );
+            clearInterval(intervalId);
+            return;
+          }
+          counter++;
+          const payload = `Test Frame ${counter} for ${devId}`;
+          const part = `\r
 --${BOUNDARY}\r
-`);
-        console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Sent initial boundary for ${devId}`);
-        responses[devId].push(res);
-        console.log(
-          `[${(/* @__PURE__ */ new Date()).toISOString()}] Added response to listeners for ${devId}. Count: ${responses[devId].length}`
-        );
+Content-Type: text/plain\r
+Content-Length: ${payload.length}\r
+\r
+${payload}`;
+          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] TEST Writing part ${counter} for ${devId}`);
+          res.write(part);
+        }, 1e3);
         res.on("close", () => {
-          console.log(
-            `[${(/* @__PURE__ */ new Date()).toISOString()}] MJPEG stream response closed for camera ${devId}. WritableEnded=${res.writableEnded}. Destroyed=${res.destroyed}.`
-          );
-          responses[devId] = responses[devId].filter((r) => r !== res);
-          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Remaining listeners for ${devId}: ${responses[devId].length}`);
+          console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] TEST stream response closed for camera ${devId}.`);
+          clearInterval(intervalId);
         });
         res.on("error", (err) => {
-          console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR on MJPEG response stream for ${devId}: ${err.message}`);
-          responses[devId] = responses[devId].filter((r) => r !== res);
+          console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] ERROR on TEST stream for ${devId}: ${err.message}`);
+          clearInterval(intervalId);
         });
       } catch (streamError) {
+        console.error(
+          `[${(/* @__PURE__ */ new Date()).toISOString()}] CATCH ERROR setting up TEST stream for ${devId}: ${streamError.message}`
+        );
+        if (!res.headersSent) {
+          res.writeHead(500);
+          res.end("Server error setting up test stream.");
+        } else {
+          res.end();
+        }
       }
       return;
     } else if (req.url.startsWith("/discover")) {
@@ -53734,8 +53742,8 @@ var serveHttp = (port) => {
       const header = Buffer.from(
         `\r
 --${BOUNDARY}\r
-Content-Length: ${assembled.length}\r
 Content-Type: image/jpeg\r
+Content-Length: ${assembled.length}\r
 \r
 `
       );
