@@ -52681,7 +52681,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.33",
+  version: "0.0.34",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -53491,7 +53491,7 @@ var serveHttp = (port) => {
       res.write("<html>");
       res.write("<head>");
       res.write(`<link rel="shortcut icon" href="/favicon.ico">`);
-      res.write("<title>All cameras</title>");
+      res.write(`<title>${inHass2 ? "Camera Handler" : "All cameras"}</title>`);
       res.write(`
         <style>
           /* General Styles */
@@ -53531,11 +53531,11 @@ var serveHttp = (port) => {
             justify-content: space-between;
             align-items: center;
             padding: 10px 20px;
-            background-color: #0078d7;
+            background-color: #${inHass2 ? "18bcf2" : "0078d7"};
             color: white;
           }
           header.dark-mode {
-            background-color: #005a9e;
+            background-color: #${inHass2 ? "18bcf2" : "005a9e"};
           }
           header h1 {
             margin: 0;
@@ -53650,19 +53650,29 @@ var serveHttp = (port) => {
       res.write("<body>");
       res.write(`
         <header>
-          <h1>All Cameras</h1>
+          <h1>${inHass2 ? "Camera Handler" : "All cameras"}</h1>
           <div>
             <button id="discoverDevices">&#128472;</button>
             <button id="darkModeToggle">&#128261;</button>
-            <button id="viewToggle">&#8862;</button>
+            ${!inHass2 ? '<button id="viewToggle">&#8862;</button>' : ""}
           </div>
         </header>
         <div class="camera-container" id="cameraContainer">
       `);
+      inHass2 ? res.write(`
+        <div class="camera-info">
+          Copy the URL to your clipboard and click the badge to add the camera to Home Assistant
+        </div>`) : res.write("");
       Object.keys(sessions2).forEach((id) => {
         const session = sessions2[id];
         const cameraData = config2.cameras[id];
-        res.write(`
+        inHass2 ? res.write(`
+            <div class="camera-info">
+              <div class="info-table">
+                <div style="display: flex;"><span class="info-title"></span><code style="font-size: 20px; border-radius: 5px; padding: 5px; background-color: #000; color: #fff; margin-left: 10px;">http://localhost:5000/camera/${id}</code><a href="https://my.home-assistant.io/redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a></div>
+              </div>
+            </div>
+        `) : res.write(`
           <a href="${basePath}/ui/${id}?friendlyName=" class="camera-item" data-id="${id}">
             <img src="${basePath}/camera/${id}" alt="Camera ${cameraName(id)}">
             <div class="camera-info">
@@ -53671,8 +53681,6 @@ var serveHttp = (port) => {
                 <div><span class="info-title">Name:</span> ${cameraName(id)}</div>
                 <div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${id}</span><button class="edit-friendly-name" data-id="${id}">&#x270E;</button></div>
                 <div><span class="info-title">IP:</span> ${session.dst_ip}</div>
-                ${inHass2 ? `<a href="https://my.home-assistant.io/redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a>
-                <code>http://localhost:5000/camera/${id}</code>` : ""}
               </div>
               <div class="grid-name" data-id="${id}">${cameraName(id)}</div>
             </div>
