@@ -53130,7 +53130,7 @@ var asd_default = `<!DOCTYPE html>
       <button id="darkModeToggle">&#128261;</button>
     </header>
     <div class="camera-view" id="cameraView">
-      <img src="\${basePath}/camera/\${id}" alt="Camera \${name}" id="cameraStream" />
+      <img src="/camera/\${id}" alt="Camera \${name}" id="cameraStream" />
       <div class="fullscreen-container" id="buttonBar">
         <button onclick="toggle_audio()" id="audio" disabled>Audio: disabled</button>
         <button onclick="fetch('/rotate/\${id}')">&#8634;</button>
@@ -53328,10 +53328,9 @@ var serveHttp = (port) => {
     );
     if (req.url.startsWith("/ui/")) {
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const devId = url.pathname.split("/")[2];
-      const devId2 = url.pathname.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 5 : 2];
+      const devId = url.pathname.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/ui/") ? 5 : 2];
       console.log(
-        `[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /ui/ request for ID: ${devId} vs ${devId2} (BasePath: ${basePath})`
+        `[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /ui/ request for ID: ${devId} (BasePath: ${basePath})`
       );
       const session = sessions2[devId];
       if (!session) {
@@ -53393,9 +53392,8 @@ var serveHttp = (port) => {
       res.end();
       return;
     } else if (req.url.startsWith("/camera/")) {
-      let devId = requestUrl.split("/")[2];
-      let devId2 = requestUrl.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
-      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} vs ${devId2} (BasePath: ${basePath})`);
+      let devId = requestUrl.split("/")[inHass2 && basePath.length > 0 && requestUrl.startsWith(basePath + "/camera/") ? 5 : 2];
+      console.log(`[${(/* @__PURE__ */ new Date()).toISOString()}] Handling /camera/ request for ID: ${devId} (BasePath: ${basePath})`);
       let s = sessions2[devId];
       if (s === void 0) {
         console.error(`[${(/* @__PURE__ */ new Date()).toISOString()}] Camera ${devId} not discovered`);
