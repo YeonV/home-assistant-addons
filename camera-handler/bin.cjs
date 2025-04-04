@@ -51074,7 +51074,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.40",
+  version: "0.0.41",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51108,14 +51108,12 @@ async function sendCameraDiscoveredNotification(cameraId, ipAddress, port) {
   }
   const apiUrl = "http://supervisor/core/api/services/persistent_notification/create";
   const notificationId = `camera_handler_discovered_${cameraId}`;
-  const title = "Camera Handler: New Camera Found";
+  const title = "New Camera Found";
   const message = `Discovered camera '${cameraId}' at IP address ${ipAddress}.
 
 To add it manually:
-1. Go to **Settings > Devices & Services > Add Integration**.
-2. Search for and select **MJPEG Camera**.
-3. Enter the following URL (replace <HA_HOST_IP> with the actual IP address of your Home Assistant machine):
-   \`http://<HA_HOST_IP>:${port}/camera/${cameraId}\``;
+1. Copy this URL to your clipboard:
+   \`http://localhost:${port}/camera/${cameraId}\`, then <a href="/_my_redirect/config_flow_start?domain=mjpeg">add it here</a>`;
   const body = JSON.stringify({
     notification_id: notificationId,
     title,
@@ -52123,7 +52121,7 @@ var serveHttp = (port) => {
         inHass2 ? res.write(`
             <div class="camera-info">
               <div class="info-table">
-                <div style="display: flex;"><span class="info-title"></span><code style="font-size: 20px; border-radius: 5px; padding: 5px; background-color: #000; color: #fff; margin-left: 10px;">http://localhost:5000/camera/${id}</code><a href="https://my.home-assistant.io/redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a></div>
+                <div style="display: flex;"><span class="info-title"></span><code style="font-size: 20px; border-radius: 5px; padding: 5px; background-color: #000; color: #fff; margin-left: 10px;">http://localhost:${port}/camera/${id}</code><button class="copy-this" data-content="http://localhost:${port}/camera/${id}">copy</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank"><img src="https://my.home-assistant.io/badges/config_flow_start.svg"></a></div>
               </div>
             </div>
         `) : res.write(`
@@ -52144,7 +52142,17 @@ var serveHttp = (port) => {
       res.write(`
         </div>
        
-        <script>        
+        <script>
+          document.querySelectorAll('.copy-this').forEach(button => {
+            button.addEventListener('click', () => {
+              const content = button.getAttribute('data-content');
+              navigator.clipboard.writeText(content).then(() => {
+                alert('Copied to clipboard: ' + content);
+              }).catch(err => {
+                console.error('Error copying text: ', err);
+              });
+            });
+          });        
           const basePath = "${basePath}";
           // Load Friendly Names from localStorage
           document.querySelectorAll('.camera-item').forEach(item => {
