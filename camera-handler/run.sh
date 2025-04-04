@@ -1,3 +1,5 @@
+#!/usr/bin/with-contenv bashio
+
 # === Log Start ===
 bashio::log.info "--- run.sh: Starting Camera Handler Addon ---"
 

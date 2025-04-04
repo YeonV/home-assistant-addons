@@ -52681,7 +52681,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.38",
+  version: "0.0.39",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
