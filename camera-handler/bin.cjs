@@ -52681,7 +52681,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.34",
+  version: "0.0.35",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -52706,11 +52706,64 @@ var package_default = {
   }
 };
 
+// notifications.ts
+async function sendCameraDiscoveredNotification(cameraId, ipAddress, port) {
+  const token = process.env.SUPERVISOR_TOKEN;
+  if (!token) {
+    logger.warn("SUPERVISOR_TOKEN not found. Cannot send persistent notification.");
+    return;
+  }
+  const apiUrl = "http://supervisor/core/api/services/persistent_notification/create";
+  const notificationId = `camera_handler_discovered_${cameraId}`;
+  const title = "Camera Handler: New Camera Found";
+  const message = `Discovered camera '${cameraId}' at IP address ${ipAddress}.
+
+To add it manually:
+1. Go to **Settings > Devices & Services > Add Integration**.
+2. Search for and select **MJPEG Camera**.
+3. Enter the following URL (replace <HA_HOST_IP> with the actual IP address of your Home Assistant machine):
+   \`http://<HA_HOST_IP>:${port}/camera/${cameraId}\``;
+  const body = JSON.stringify({
+    notification_id: notificationId,
+    title,
+    message
+  });
+  const headers = {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json"
+  };
+  logger.debug(`Sending notification for ${cameraId} to ${apiUrl}`);
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers,
+      body
+    });
+    if (!response.ok) {
+      let errorBody = "";
+      try {
+        errorBody = await response.text();
+      } catch (e) {
+      }
+      throw new Error(`API request failed with status ${response.status}: ${response.statusText}. Body: ${errorBody}`);
+    }
+    logger.info(`Successfully sent persistent notification for camera ${cameraId}. Status: ${response.status}`);
+  } catch (error) {
+    logger.error(`Error sending persistent notification for ${cameraId}: ${error.message}`);
+    throw error;
+  }
+}
+
 // discovery.ts
+var addonOptions = {
+  mqttEnabled: process.env.ADDON_MQTT_ENABLED === "true",
+  uiPort: parseInt(process.env.ADDON_UI_PORT || "5000", 10)
+};
+logger.info(`Addon Options Loaded: MQTT Enabled=${addonOptions.mqttEnabled}, UI Port=${addonOptions.uiPort}`);
 var sanitizeForMqtt = (id) => {
   return id.replace(/[\s+#\/]/g, "_");
 };
-var inHass = process.env.MQTT_HOST.length > 0;
+var inHass = !!process.env.SUPERVISOR_TOKEN;
 var handleIncomingPunch = (msg, ee, rinfo) => {
   const ab = new Uint8Array(msg).buffer;
   const dv = new DataView(ab);
@@ -52825,19 +52878,21 @@ ${err.stack}`);
   });
   ee.on("discover", (rinfo, dev) => {
     const safeDevId = sanitizeForMqtt(dev.devId);
-    if (inHass) {
-    }
     if (devicesDiscovered[safeDevId]) {
       logger.debug(`Camera ${safeDevId} (${dev.devId}) at ${rinfo.address} already processed, ignoring.`);
       return;
     }
     devicesDiscovered[safeDevId] = true;
     logger.info(`Discovered new camera: ID=${safeDevId} (Original: ${dev.devId}) at ${rinfo.address}`);
-    if (mqttClient && mqttClient.connected) {
+    if (inHass) {
+      logger.info(`Attempting to send persistent notification for ${safeDevId}`);
+      sendCameraDiscoveredNotification(dev.devId, rinfo.address, addonOptions.uiPort).then(() => logger.info(`Persistent notification request sent for ${safeDevId}.`)).catch((err) => logger.error(`Failed to send persistent notification for ${safeDevId}: ${err.message}`));
+    }
+    if (inHass && addonOptions.mqttEnabled && mqttClient && mqttClient.connected) {
+      logger.info(`MQTT is enabled and client connected. Attempting MQTT discovery for ${safeDevId}...`);
       const deviceId = `yz-${safeDevId}`;
       const configTopic = `homeassistant/camera/${deviceId}/config`;
-      const hostIpForMqtt = "192.168.1.47";
-      const baseUrl = `http://${hostIpForMqtt}:5000/camera/${dev.devId}`;
+      const baseUrl = `http://localhost:${addonOptions.uiPort}/camera/${dev.devId}`;
       const configPayload = {
         // Identification
         name: `Camera ${dev.devId}`,
@@ -52861,7 +52916,8 @@ ${err.stack}`);
           name: `X9/A5 Camera Handler`,
           manufacturer: "Yeon",
           model: "Blade Camera",
-          sw_version: package_default.version || "0.0.31"
+          sw_version: package_default.version || "0.0.31",
+          configuration_url: `homeassistant://hassio/ingress/self`
           // via_device: "camera-handler", // Optional: Link to the addon device itself if you create one
         }
         // Optional: Availability tracking (requires publishing to availability_topic)
@@ -52872,9 +52928,16 @@ ${err.stack}`);
       const payloadString = JSON.stringify(configPayload);
       if (mqttClient && mqttClient.connected && payloadString.length > 100) {
         mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+          if (err) {
+            logger.error(`Failed to publish MQTT discovery for ${safeDevId}: ${err.message}`);
+          } else {
+            logger.info(`Successfully published MQTT discovery for ${safeDevId}.`);
+          }
         });
-      } else {
-        logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
+      } else if (inHass && addonOptions.mqttEnabled) {
+        logger.warn(`MQTT is enabled in options, but client not connected. Skipping MQTT discovery for ${safeDevId}.`);
+      } else if (inHass && !addonOptions.mqttEnabled) {
+        logger.info(`MQTT is disabled in options. Skipping MQTT discovery for ${safeDevId}.`);
       }
       if (payloadString.length > 100) {
         logger.info(`Publishing MQTT discovery config for ${safeDevId} to topic ${configTopic}`);
@@ -52882,7 +52945,9 @@ ${err.stack}`);
           if (err) {
             logger.error(`Failed to publish MQTT discovery for ${safeDevId}: ${err.message}`);
           } else {
-            logger.info(`Successfully published MQTT discovery for ${safeDevId}. Entity should appear in Home Assistant.`);
+            logger.info(
+              `Successfully published MQTT discovery for ${safeDevId}. Entity should appear in Home Assistant.`
+            );
             mqttClient.publish(`homeassistant/camera/${deviceId}/availability`, "online", { retain: true });
             mqttClient.publish(`homeassistant/camera/${deviceId}/state`, "idle", { retain: true });
           }
@@ -52891,8 +52956,8 @@ ${err.stack}`);
     } else {
       logger.info(`MQTT client not connected. Cannot register camera ${safeDevId} via MQTT Discovery.`);
       logger.info(`Manual configuration needed for camera ${dev.devId} at ${rinfo.address}:`);
-      logger.info(`MJPEG URL:       http://<HOME_ASSISTANT_IP_OR_HOSTNAME>:5000/camera/${dev.devId}`);
-      logger.info(`Still Image URL: http://<HOME_ASSISTANT_IP_OR_HOSTNAME>:5000/camera/${dev.devId}`);
+      logger.info(`MJPEG URL:       http://<HOME_ASSISTANT_IP_OR_HOSTNAME>:${addonOptions.uiPort}/camera/${dev.devId}`);
+      logger.info(`Still Image URL: http://<HOME_ASSISTANT_IP_OR_HOSTNAME>:${addonOptions.uiPort}/camera/${dev.devId}`);
     }
   });
   return ee;
@@ -53665,7 +53730,6 @@ var serveHttp = (port) => {
         </div>`) : res.write("");
       Object.keys(sessions2).forEach((id) => {
         const session = sessions2[id];
-        const cameraData = config2.cameras[id];
         inHass2 ? res.write(`
             <div class="camera-info">
               <div class="info-table">

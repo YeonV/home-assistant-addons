@@ -1,20 +1,18 @@
-#!/usr/bin/with-contenv bashio
+# === Log Start ===
+bashio::log.info "--- run.sh: Starting Camera Handler Addon ---"
 
-# # Just log a message and wait, doing nothing else
-# bashio::log.info "--- MINIMAL run.sh: Container started, attempting sleep ---"
-# sleep 3600 # Sleep for an hour to keep the container running
-# bashio::log.info "--- MINIMAL run.sh: Sleep finished (shouldn't normally reach here) ---"
-# exit 0
+# === Read Addon Options using bashio ===
+MQTT_ENABLED=$(bashio::config 'mqtt')
+UI_PORT=$(bashio::config 'ui_port')
 
-# # #!/usr/bin/with-contenv bashio
-# IMPORTANT: Temporarily COMMENT OUT set -e to allow logging even if commands fail
-# set -e
+bashio::log.info "--- run.sh: Addon Options ---"
+bashio::log.info "MQTT Enabled: ${MQTT_ENABLED}"
+bashio::log.info "UI Port: ${UI_PORT}"
 
-# === VERY FIRST STEP: Try plain echo to stdout ===
-echo "--- run.sh: TOP OF SCRIPT REACHED (stdout) ---"
-
-# === SECOND STEP: Try bashio logging immediately ===
-bashio::log.info "--- run.sh: TESTING BASHIO LOGGING ---" || echo "--- run.sh: bashio::log.info FAILED (stdout) ---"
+# === Export Options as Environment Variables for Node.js ===
+export ADDON_MQTT_ENABLED="${MQTT_ENABLED}"
+export ADDON_UI_PORT="${UI_PORT}"
+bashio::log.info "--- run.sh: Exported options to environment ---"
 
 # === THIRD STEP: Check bashio::services availability ===
 bashio::log.info "--- run.sh: Checking bashio::services availability ---"
