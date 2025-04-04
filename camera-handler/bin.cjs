@@ -52681,7 +52681,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.35",
+  version: "0.0.36",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -53401,7 +53401,7 @@ var asd_default = `<!DOCTYPE html>
 `;
 
 // http_server.ts
-var inHass2 = process.env.MQTT_HOST.length > 0;
+var inHass2 = !!process.env.SUPERVISOR_TOKEN;
 var BOUNDARY = "a very good boundary line";
 var responses = {};
 var audioResponses = {};
@@ -53972,12 +53972,11 @@ yargs_default(hideBin(import_node_process.default.argv)).command(
     return yargs.option("color", { describe: "Use color in logs" }).boolean(["audio", "color"]).option("config_file", { describe: "Specify config file" }).option("log_level", { describe: "Set log level" }).option("discovery_ip", { describe: "Camera discovery IP address" }).option("port", { describe: "HTTP Port to listen on" }).string(["log_level", "discovery_ip", "config_file"]).number(["port"]).strict();
   },
   (argv) => {
+    const uiPort = parseInt((import_node_process.default.env.ADDON_UI_PORT || argv.port || 5e3).toString(), 10);
     if (argv.config_file !== void 0) {
       loadConfig(argv.config_file);
     }
-    if (argv.port) {
-      config2.http_server.port = argv.port;
-    }
+    config2.http_server.port = uiPort;
     if (argv.color !== void 0) {
       config2.logging.use_color = argv.color;
     }
