@@ -50676,12 +50676,16 @@ var handle_P2PRdy = (session, _) => {
   session.send(b);
 };
 var makeP2pRdy = (dev) => {
-  const outbuf = new DataView(new Uint8Array(20).buffer);
-  const devPrefixLength = 4;
-  outbuf.add(0).writeString(dev.prefix);
-  outbuf.add(4).writeU64(dev.serialU64);
-  outbuf.add(8 + devPrefixLength).writeString(dev.suffix);
-  return create_P2pRdy(outbuf);
+  const P2PRDY_PAYLOAD_SIZE = 20;
+  const outbufView = new DataView(new Uint8Array(P2PRDY_PAYLOAD_SIZE).buffer);
+  outbufView.add(0).writeString(dev.prefix);
+  outbufView.add(4).writeU64(dev.serialU64);
+  const suffixTargetLength = 8;
+  const suffixBuffer = Buffer.from(dev.suffix);
+  const finalSuffixBuffer = Buffer.alloc(suffixTargetLength);
+  suffixBuffer.copy(finalSuffixBuffer, 0, 0, Math.min(suffixBuffer.length, suffixTargetLength));
+  outbufView.add(12).writeByteArray(finalSuffixBuffer);
+  return create_P2pRdy(outbufView);
 };
 var swVerToString = (swver) => {
   return (swver >> 24 & 255).toString() + "." + (swver >> 16 & 255).toString() + "." + (swver >> 8 & 255).toString() + "." + (swver & 255).toString();
@@ -50762,6 +50766,31 @@ var createResponseForControlCommand = (session, dv) => {
       return [];
     default:
       logger.info(`Unhandled control command: 0x${cmd_id.toString(16)}`);
+      try {
+        const dataOffset = 20;
+        const encryptedPayloadLen = payload_len - 4;
+        if (encryptedPayloadLen > 0) {
+          if (dataOffset + encryptedPayloadLen <= dv.byteLength) {
+            const encryptedPayloadBytes = dv.add(dataOffset).readByteArray(encryptedPayloadLen);
+            logger.info(` -> Raw Encrypted Payload (Hex): ${Buffer.from(encryptedPayloadBytes.buffer).toString("hex")}`);
+            const bufferCopy = encryptedPayloadBytes.buffer.slice(0);
+            const decryptedPayloadView = new DataView(bufferCopy);
+            XqBytesDec(decryptedPayloadView, encryptedPayloadLen, 4);
+            logger.info(` -> Decrypted Payload (Hex): ${Buffer.from(decryptedPayloadView.buffer).toString("hex")}`);
+            try {
+              logger.info(` -> Decrypted Payload (ASCII): ${Buffer.from(decryptedPayloadView.buffer).toString("ascii")}`);
+            } catch (asciiError) {
+            }
+          } else {
+            logger.warn(` -> Invalid payload length for unhandled command 0x${cmd_id.toString(16)}. Declared encrypted length: ${encryptedPayloadLen}, Available in packet after offset ${dataOffset}: ${dv.byteLength - dataOffset}`);
+          }
+        } else {
+          logger.info(` -> Command 0x${cmd_id.toString(16)} has no payload data (payload_len <= 4).`);
+        }
+      } catch (e) {
+        logger.error(` -> Error processing payload for unhandled command 0x${cmd_id.toString(16)}: ${e.message}`);
+      }
+      break;
   }
   return [];
 };
@@ -51074,7 +51103,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.41",
+  version: "0.0.42",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51113,7 +51142,10 @@ async function sendCameraDiscoveredNotification(cameraId, ipAddress, port) {
 
 To add it manually:
 1. Copy this URL to your clipboard:
-   \`http://localhost:${port}/camera/${cameraId}\`, then <a href="/_my_redirect/config_flow_start?domain=mjpeg">add it here</a>`;
+
+   \`http://localhost:${port}/camera/${cameraId}\`
+
+2. add it <a href="/_my_redirect/config_flow_start?domain=mjpeg">here</a>`;
   const body = JSON.stringify({
     notification_id: notificationId,
     title,
@@ -52147,7 +52179,7 @@ var serveHttp = (port) => {
             button.addEventListener('click', () => {
               const content = button.getAttribute('data-content');
               navigator.clipboard.writeText(content).then(() => {
-                alert('Copied to clipboard: ' + content);
+                console.log('Copied to clipboard: ' + content);
               }).catch(err => {
                 console.error('Error copying text: ', err);
               });
