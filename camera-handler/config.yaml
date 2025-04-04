@@ -1,5 +1,5 @@
 name: X9/A5 Camera Handler
-version: 0.0.37
+version: 0.0.38
 slug: camera_handler
 description: A custom Node.js server handling X9/A5 Cameras inside Home Assistant.
 url: https://github.com/YeonV/home-assistant-addons/tree/master/camera-handler
@@ -31,6 +31,6 @@ options: {
 }
 schema: {
   mqtt: bool,
-  ui_port: number
+  ui_port: port
 }
 image: ghcr.io/yeonv/{arch}-camera-handler
