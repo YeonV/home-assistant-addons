@@ -76,7 +76,7 @@ bashio::log.info "--- run.sh: Script file found: ${APP_SCRIPT} ---"
 # === Execute Node ===
 bashio::log.info "--- run.sh: Attempting 'exec node ${APP_SCRIPT} http_server' ---"
 # The first argument 'http_server' might be specific to your bin.cjs, adjust if needed
-exec node "${APP_SCRIPT}" http_server
+#exec node "${APP_SCRIPT}" http_server
 
 bashio::log.error "--- run.sh: !!! EXEC NODE RETURNED OR FAILED !!! EXITING ---"
-exit 1
+#exit 1
