@@ -50779,7 +50779,7 @@ var createResponseForControlCommand = (session, dv) => {
         } else if (encryptedPayloadLen <= 0) {
           logger.info(` -> Command 0x${cmd_id.toString(16)} has no payload data.`);
         } else {
-          logger.warn(` -> Invalid payload length for unhandled command 0x${cmd_id.toString(16)}.`);
+          logger.warning(` -> Invalid payload length for unhandled command 0x${cmd_id.toString(16)}.`);
         }
       } catch (e) {
         logger.error(` -> Error processing payload for unhandled command 0x${cmd_id.toString(16)}: ${e.message}`);
@@ -51328,7 +51328,7 @@ function closeMqtt() {
 async function sendCameraDiscoveredNotification(cameraId, ipAddress, port) {
   const token = process.env.SUPERVISOR_TOKEN;
   if (!token) {
-    logger.warn("SUPERVISOR_TOKEN not found. Cannot send persistent notification.");
+    logger.warning("SUPERVISOR_TOKEN not found. Cannot send persistent notification.");
     return;
   }
   const apiUrl = "http://supervisor/core/api/services/persistent_notification/create";
@@ -51376,7 +51376,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.49",
+  version: "0.0.50",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51728,7 +51728,7 @@ var addonOptions = {
   logLevel: process.env.ADDON_LOG_LEVEL || "info"
 };
 if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPort > 65535) {
-  logger.warn(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
+  logger.warning(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
   addonOptions.uiPort = 5e3;
 }
 logger.info(
@@ -51824,7 +51824,7 @@ Content-Length: ${assembled.length}\r
 
 `);
         } catch (e) {
-          logger.warn(`Error writing audio to listener: ${e.message}`);
+          logger.warning(`Error writing audio to listener: ${e.message}`);
         }
       });
     });
@@ -51868,7 +51868,7 @@ Content-Length: ${assembled.length}\r
           else logger.info(`MQTT Discovery published for ${safeDevId}`);
         });
       } else {
-        logger.warn(`MQTT Discovery enabled but client not connected during session creation for ${safeDevId}.`);
+        logger.warning(`MQTT Discovery enabled but client not connected during session creation for ${safeDevId}.`);
       }
     } else {
       logger.info(`MQTT Discovery disabled, skipping for ${safeDevId}.`);
@@ -52007,13 +52007,13 @@ var serveHttp = (port) => {
         logger.debug(`Handling /camera/ stream request for ID: ${devId}`);
         const s = sessions2[devId];
         if (!s) {
-          logger.warn(`Stream requested for unknown session: ${devId}`);
+          logger.warning(`Stream requested for unknown session: ${devId}`);
           res.writeHead(404);
           res.end("Camera not discovered");
           return;
         }
         if (!s.connected) {
-          logger.warn(`Stream requested for offline session: ${devId}`);
+          logger.warning(`Stream requested for offline session: ${devId}`);
           res.writeHead(503);
           res.end("Camera offline");
           return;
@@ -52044,7 +52044,7 @@ var serveHttp = (port) => {
       if (requestUrl.startsWith("/discover") || basePath && requestUrl.startsWith(`${basePath}/discover`)) {
         logger.info("Discovery triggered by client via /discover endpoint.");
         if (activeDiscoveryEmitter) {
-          logger.warn("Discovery is already running.");
+          logger.warning("Discovery is already running.");
           res.writeHead(409, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ message: "Discovery already in progress." }));
         } else {
@@ -52085,7 +52085,7 @@ ${renderError.stack}`);
           return;
         }
       }
-      logger.warn(`No route matched for: ${method} ${requestUrl} (BasePath: '${basePath}')`);
+      logger.warning(`No route matched for: ${method} ${requestUrl} (BasePath: '${basePath}')`);
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not Found");
     } catch (routeError) {
@@ -52125,7 +52125,7 @@ ${routeError.stack}`);
         process.exit(0);
       });
       setTimeout(() => {
-        logger.warn("Graceful HTTP shutdown timed out. Forcing exit.");
+        logger.warning("Graceful HTTP shutdown timed out. Forcing exit.");
         process.exit(1);
       }, 5e3);
     } else {
