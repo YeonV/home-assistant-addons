@@ -51377,7 +51377,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.53",
+  version: "0.0.54",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51736,56 +51736,167 @@ ${uiRenderError.stack}`);
                         .grid-name{display:none;text-align:center;font-weight:700;margin-top:10px}
                         .camera-container.grid-view .grid-name{display:block}
                         #instructions,#no-cameras{margin-bottom:10px}
+                        .hidden { display: none !important; }
+                        header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:#18bcf2;position:sticky;top:0;z-index:10} /* Default to HA color */
+                        header.standalone-mode { background-color: #0078d7; } /* Standalone color */
+                        header.dark-mode { background-color: #005a9e; } /* Dark standalone color */
+                        header.dark-mode.ha-mode { background-color: #18bcf2; } /* Dark HA color (might be same as light) */
+
                     </style></head>`);
-          res.write(`<body><header><h1>${inHass ? "Camera Handler" : "All Cameras"}</h1><div>
+          res.write(`<body><header>
+                        {/* Title updated client-side */}
+                        <h1 id="pageTitle">Camera Handler</h1>
+                        <div>
                           <button id="discoverDevices" title="Discover Devices">\u{1F4E1}</button>
+                          {/* View Toggle Button Added */}
+                          <button id="viewToggleBtn" title="Toggle View Mode">\u{1F504}</button>
                           <button id="darkModeToggle" title="Toggle Dark Mode">\u{1F4A1}</button>
-                          ${!inHass ? '<button id="viewToggle" title="Toggle View">\u{1F5BC}\uFE0F</button>' : ""}
-                          </div></header><div class="camera-container" id="cameraContainer">`);
-          if (inHass) {
-            res.write(`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration. <button onclick="window.location.reload()" style="margin-left: 10px; cursor: pointer;">Refresh List</button></div>`);
-            if (Object.keys(sessions2).length === 0) {
-              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
-            } else {
-              Object.keys(sessions2).forEach((id) => {
-                const session = sessions2[id];
-                const urlToCopy = `http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/${id}`;
-                res.write(`<div class="camera-info" data-session-id="${id}"><div class="info-table"><div><span class="info-title">${cameraName(id)} (${id})</span><code>${urlToCopy}</code><button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left: auto; font-size: 0.9em;">(IP: ${(session == null ? void 0 : session.dst_ip) || "N/A"})</span></div></div></div>`);
-              });
-            }
-          } else {
-            if (Object.keys(sessions2).length === 0) {
-              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
-            } else {
-              Object.keys(sessions2).forEach((id) => {
-                const session = sessions2[id];
-                const currentFriendlyName = cameraName(id);
-                res.write(`<a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="${id}"><img src="${basePath}/camera/${id}" alt="Camera ${currentFriendlyName}" onerror="this.style.display='none'; this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> ${id}</div><div><span class="info-title">Name:</span> ${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${currentFriendlyName}</span><button class="edit-friendly-name" data-id="${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> ${(session == null ? void 0 : session.dst_ip) || "N/A"}</div></div><div class="grid-name">${currentFriendlyName}</div></div></a>`);
-              });
-            }
-          }
-          res.write(`</div>`);
+                          {/* Grid/List toggle only shown in standalone */}
+                          <button id="gridListToggle" title="Toggle Grid/List View" class="hidden">\u{1F5BC}\uFE0F</button>
+                        </div>
+                        </header>
+                        {/* Container content rendered client-side */}
+                        <div class="camera-container" id="cameraContainer">
+                            {/* Content will be generated by JS */}
+                            <div class="camera-info" id="loading-indicator">Loading camera list...</div>
+                        </div>`);
           res.write(`<script>
-                        document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{console.log('Copied: '+t);const e=button.textContent;button.textContent='\u2705',setTimeout(()=>{button.textContent=e},1500)}).catch(e=>{console.error('Copy failed: ',e)})})});
-                        const basePath="${basePath}";const cameraContainer=document.getElementById('cameraContainer');const darkModeToggle=document.getElementById('darkModeToggle');
-                        function applyDarkMode(e){document.body.classList.toggle('dark-mode',e),document.querySelector('header')?.classList.toggle('dark-mode',e),document.querySelectorAll('.camera-info, .camera-item').forEach(t=>t.classList.toggle('dark-mode',e))}
-                        localStorage.getItem('darkMode')==='true'&&applyDarkMode(!0),darkModeToggle?.addEventListener('click',()=>{const e=document.body.classList.toggle('dark-mode');localStorage.setItem('darkMode',e),applyDarkMode(e)});
-                        document.getElementById('discoverDevices')?.addEventListener('click',()=>{fetch(\`\${basePath}/discover\`).then(e=>e.ok?e.json():Promise.reject(new Error(\`HTTP \${e.status}\`))).then(e=>{alert(e.message||'Discovery started. Refresh page after 10s to see results.')}).catch(e=>{console.error('Error triggering discovery:',e),alert(\`Failed to start discovery: \${e.message}\`)})});
-                        const viewToggle=document.getElementById('viewToggle');viewToggle&&cameraContainer&&viewToggle.addEventListener('click',()=>cameraContainer.classList.toggle('grid-view'));
-                        const inHass=${inHass};if(!inHass){const configCameras=${JSON.stringify(config2.cameras || {})};function cameraName(e){return configCameras[e]?.alias||e}
-                        document.querySelectorAll('.camera-item').forEach(item=>{const id=item.dataset.id;if(!id)return;const friendlyName=localStorage.getItem(\`friendlyName_\${id}\`)||cameraName(id);const nameSpan=document.getElementById(\`friendlyName_\${id}\`);nameSpan&&(nameSpan.innerText=friendlyName);const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=friendlyName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(friendlyName)}\`)});
-                        document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName),nameSpan&&(nameSpan.innerText=newName);const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=newName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`);const nameDiv=item.querySelector('.info-table > div:nth-child(2)');nameDiv&&(nameDiv.childNodes[1].textContent=newName);const img=item.querySelector('img');img&&(img.alt=\`Camera \${newName}\`)}})})};
+                        const inHass = ${inHass}; // Is the addon running in HA context?
+                        const basePath = "${basePath}";
+                        const cameraContainer = document.getElementById('cameraContainer');
+                        const pageTitle = document.getElementById('pageTitle');
+                        const header = document.querySelector('header');
+                        const viewToggleBtn = document.getElementById('viewToggleBtn');
+                        const darkModeToggle = document.getElementById('darkModeToggle');
+                        const discoverBtn = document.getElementById('discoverDevices');
+                        const gridListToggleBtn = document.getElementById('gridListToggle'); // Grid/List toggle
+
+                        // Persisted state
+                        let currentViewMode = localStorage.getItem('cameraHandlerViewMode') || (inHass ? 'ha' : 'standalone');
+                        let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+                        // Data (fetched or stored) - use actual sessions from server
+                        const sessionsData = ${JSON.stringify(sessions2)};
+                        const configCameras = ${JSON.stringify(config2.cameras || {})};
+                        function cameraName(id) { return configCameras[id]?.alias || id; }
+
+                        // --- Core Rendering Function ---
+                        function renderUI() {
+                            if (!cameraContainer || !pageTitle || !header || !gridListToggleBtn) return;
+
+                            // 1. Set Dark Mode Class on body
+                            document.body.classList.toggle('dark-mode', isDarkMode);
+
+                            // 2. Set Header style and Title
+                            pageTitle.textContent = (currentViewMode === 'ha') ? 'Camera Handler (HA View)' : 'All Cameras (Standalone View)';
+                            header.classList.toggle('standalone-mode', currentViewMode === 'standalone');
+                            header.classList.toggle('ha-mode', currentViewMode === 'ha');
+                            header.classList.toggle('dark-mode', isDarkMode); // Apply dark mode to header
+
+                            // 3. Clear current container content
+                            cameraContainer.innerHTML = '';
+
+                            // 4. Render content based on view mode
+                            if (currentViewMode === 'ha') {
+                                // Show grid/list toggle ONLY in standalone mode
+                                gridListToggleBtn.classList.add('hidden');
+                                cameraContainer.classList.remove('grid-view'); // Ensure list view in HA mode
+
+                                // Render HA instructions + list
+                                cameraContainer.innerHTML += \`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration. <button onclick="window.location.reload()" style="margin-left: 10px; cursor: pointer;">Refresh List</button></div>\`;
+                                if (Object.keys(sessionsData).length === 0) {
+                                    cameraContainer.innerHTML += \`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>\`;
+                                } else {
+                                    Object.keys(sessionsData).forEach(id => {
+                                        const session = sessionsData[id];
+                                        const urlToCopy = \`http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/\${id}\`;
+                                        cameraContainer.innerHTML += \`<div class="camera-info" data-session-id="\${id}"><div class="info-table"><div><span class="info-title">\${cameraName(id)} (\${id})</span><code>\${urlToCopy}</code><button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="\${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left: auto; font-size: 0.9em;">(IP: \${session?.dst_ip || 'N/A'})</span></div></div></div>\`;
+                                    });
+                                }
+                            } else { // Standalone Mode
+                                // Show grid/list toggle
+                                gridListToggleBtn.classList.remove('hidden');
+                                // Apply grid view if necessary (could save this state too)
+                                // cameraContainer.classList.toggle('grid-view', isGridView);
+
+                                // Render Standalone list with previews
+                                if (Object.keys(sessionsData).length === 0) {
+                                     cameraContainer.innerHTML += \`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>\`;
+                                 } else {
+                                    Object.keys(sessionsData).forEach(id => {
+                                        const session = sessionsData[id];
+                                        const currentFriendlyName = localStorage.getItem(\`friendlyName_\${id}\`) || cameraName(id);
+                                        cameraContainer.innerHTML += \`<a href="\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="\${id}"><img src="\${basePath}/camera/\${id}" alt="Camera \${currentFriendlyName}" onerror="this.style.display='none'; this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> \${id}</div><div><span class="info-title">Name:</span> \${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_\${id}">\${currentFriendlyName}</span><button class="edit-friendly-name" data-id="\${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> \${session?.dst_ip || 'N/A'}</div></div><div class="grid-name">\${currentFriendlyName}</div></div></a>\`;
+                                    });
+                                }
+                                // Add friendly name edit listeners after rendering
+                                addFriendlyNameEditListeners();
+                            }
+
+                            // Add copy listeners after rendering
+                            addCopyListeners();
+                            // Apply dark mode to newly added elements
+                            applyDarkModeClasses(isDarkMode);
+
+                        } // End renderUI
+
+                        // --- Helper Functions ---
+                        function addCopyListeners() {
+                            document.querySelectorAll('.copy-this').forEach(button => {
+                                button.addEventListener('click', (e) => { /* ... copy logic ... */ });
+                            });
+                        }
+                        function addFriendlyNameEditListeners() {
+                             document.querySelectorAll('.edit-friendly-name').forEach(button => {
+                                button.addEventListener('click', (e) => { /* ... edit logic ... */ });
+                             });
+                        }
+                        function applyDarkModeClasses(isDark) {
+                             document.querySelectorAll('.camera-info, .camera-item').forEach(item => item.classList.toggle('dark-mode', isDark));
+                        }
+
+                        // --- Event Listeners ---
+                        viewToggleBtn?.addEventListener('click', () => {
+                            currentViewMode = (currentViewMode === 'ha') ? 'standalone' : 'ha';
+                            localStorage.setItem('cameraHandlerViewMode', currentViewMode);
+                            renderUI(); // Re-render everything
+                        });
+
+                        darkModeToggle?.addEventListener('click', () => {
+                            isDarkMode = !isDarkMode;
+                            localStorage.setItem('darkMode', isDarkMode);
+                            renderUI(); // Re-render to apply dark mode consistently
+                        });
+
+                        discoverBtn?.addEventListener('click', () => {
+                           fetch(\`\${basePath}/discover\`)
+                             .then(response => response.ok ? response.json() : Promise.reject(new Error(\`HTTP \${response.status}\`)))
+                             .then(data => {
+                                 alert(data.message || 'Discovery started. Please refresh the page after ~10 seconds to see new devices.');
+                                 // Maybe disable button during discovery?
+                             })
+                             .catch(err => { console.error('Error triggering discovery:', err); alert(\`Failed to start discovery: \${err.message}\`); });
+                        });
+
+                        gridListToggleBtn?.addEventListener('click', () => {
+                            cameraContainer?.classList.toggle('grid-view');
+                            // Optionally save grid/list preference to localStorage too
+                        });
+
+                        // --- Initial Render ---
+                        renderUI();
+
                       </script>`);
           res.write(`</body></html>`);
           res.end();
-          logger.debug("Full root page rendered successfully.");
+          logger.debug("Root page skeleton rendered successfully.");
           return;
         } catch (renderError) {
           logger.error(`!!! Error rendering root page: ${renderError.message}
 ${renderError.stack}`);
           if (!res.writableEnded) {
             if (!res.headersSent) res.writeHead(500);
-            res.end("Internal Server Error during page render");
+            res.end("Internal Server Error");
           }
           return;
         }
