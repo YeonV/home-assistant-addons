@@ -41,7 +41,6 @@ var __privateWrapper = (obj, member, setter, getter) => ({
     return __privateGet(obj, member, getter);
   }
 });
-var __toBinaryNode = (base64) => new Uint8Array(Buffer.from(base64, "base64"));
 
 // node_modules/y18n/build/index.cjs
 var require_build = __commonJS({
@@ -46377,7 +46376,7 @@ var require_websocket = __commonJS({
     var tls = require("tls");
     var { randomBytes, createHash } = require("crypto");
     var { Duplex, Readable } = require("stream");
-    var { URL: URL2 } = require("url");
+    var { URL: URL3 } = require("url");
     var PerMessageDeflate = require_permessage_deflate();
     var Receiver = require_receiver();
     var Sender = require_sender();
@@ -46867,11 +46866,11 @@ var require_websocket = __commonJS({
         );
       }
       let parsedUrl;
-      if (address instanceof URL2) {
+      if (address instanceof URL3) {
         parsedUrl = address;
       } else {
         try {
-          parsedUrl = new URL2(address);
+          parsedUrl = new URL3(address);
         } catch (e) {
           throw new SyntaxError(`Invalid URL: ${address}`);
         }
@@ -47008,7 +47007,7 @@ var require_websocket = __commonJS({
           req.abort();
           let addr;
           try {
-            addr = new URL2(location, address);
+            addr = new URL3(location, address);
           } catch (e) {
             const err = new SyntaxError(`Invalid URL: ${location}`);
             emitErrorAndClose(websocket, err);
@@ -51205,9 +51204,6 @@ ${err.stack}`);
   });
   return ee;
 };
-var stopDiscovery = (ee) => {
-  ee.emit("stop");
-};
 
 // capture_single.ts
 var sessions = {};
@@ -51238,6 +51234,7 @@ var captureSingle = ({ discovery_ip, out_file }) => {
 
 // http_server.ts
 var import_node_http = __toESM(require("http"), 1);
+var import_node_url = require("url");
 
 // exif.ts
 var createExifOrientation = (orientation) => {
@@ -51258,14 +51255,6 @@ var createExifOrientation = (orientation) => {
   const segmentLength = Buffer.from([exifData.length + 2 >> 8, exifData.length + 2 & 255]);
   const exifHeader = Buffer.concat([Buffer.from("FFE1", "hex"), segmentLength]);
   return Buffer.concat([exifHeader, exifData]);
-};
-var addExifToJpeg = (jpegData, exifSegment) => {
-  if (jpegData.includes(Buffer.from("FFE1", "hex"))) {
-    throw new Error("JPEG already contains EXIF segment");
-  }
-  const soiEnd = 2;
-  const modifiedJpeg = Buffer.concat([jpegData.subarray(0, soiEnd), exifSegment, jpegData.subarray(soiEnd)]);
-  return modifiedJpeg;
 };
 
 // mqtt.ts
@@ -51313,70 +51302,11 @@ function initializeMqtt() {
   });
   return client;
 }
-function getMqttClient() {
-  return client;
-}
-function closeMqtt() {
-  if (client) {
-    console.log("DEBUG: Closing central MQTT client.");
-    client.end();
-    client = null;
-  }
-}
-
-// notifications.ts
-async function sendCameraDiscoveredNotification(cameraId, ipAddress, port) {
-  const token = process.env.SUPERVISOR_TOKEN;
-  if (!token) {
-    logger.warning("SUPERVISOR_TOKEN not found. Cannot send persistent notification.");
-    return;
-  }
-  const apiUrl = "http://supervisor/core/api/services/persistent_notification/create";
-  const notificationId = `camera_handler_discovered_${cameraId}`;
-  const title = "New Camera Found";
-  const message = `Discovered camera '${cameraId}' at IP address ${ipAddress}.
-
-To add it manually:
-1. Copy this URL to your clipboard:
-
-   \`http://localhost:${port}/camera/${cameraId}\`
-
-2. add it <a href="/_my_redirect/config_flow_start?domain=mjpeg">here</a>`;
-  const body = JSON.stringify({
-    notification_id: notificationId,
-    title,
-    message
-  });
-  const headers = {
-    "Authorization": `Bearer ${token}`,
-    "Content-Type": "application/json"
-  };
-  logger.debug(`Sending notification for ${cameraId} to ${apiUrl}`);
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers,
-      body
-    });
-    if (!response.ok) {
-      let errorBody = "";
-      try {
-        errorBody = await response.text();
-      } catch (e) {
-      }
-      throw new Error(`API request failed with status ${response.status}: ${response.statusText}. Body: ${errorBody}`);
-    }
-    logger.info(`Successfully sent persistent notification for camera ${cameraId}. Status: ${response.status}`);
-  } catch (error) {
-    logger.error(`Error sending persistent notification for ${cameraId}: ${error.message}`);
-    throw error;
-  }
-}
 
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.51",
+  version: "0.0.52",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51400,9 +51330,6 @@ var package_default = {
     node: ">=16.0"
   }
 };
-
-// cam.ico.gz
-var cam_ico_default = __toBinaryNode("H4sICOJhLWYAA2NhbS5pY28A7ZlPSxtBGMbfjcGUIDUQsUdzqUgP4gco5O7FL+DBHoQe8wGECO1HKIVe20vbS4v3UvALSBA8eVBEKRE0BSn9F6fP67wDw3Z2XZPZsCvzhCcvO5k/v5mdDbvvEkX4rKwQvlv0/jHRPBEtwSiiDdLlQUFB915b8Df4GlaezX2ew694IKXUSI6iaBHND+Hf8DvhnoNPcmBO8gU4Ht2VHXrtWFvW6QTZjQf1er2Skfsp3E/o52Xs+Ap+Aa979pbsH3usD2ncrVaL2T/dsg52n1eVSqUx6t7MsI6sM2u8Hyl112Qt47w/Y8f2ftrOi93i2rTHr1ar07Hrs4HyXQc3c76Rc5l0Ltbz5gffnD0mjp9Yc3sO/3JwHaPektQpFD+8zP9FiPsOnj9wN3b+isb/Fv7rYNlD3XnH/isav+v6fJZy/RSZ/wv+/2bS2heU/zu8mqV9Afk/93q9zO0LyL98l/aBP/AH/sAf+AN/4C8+v60y8YvacBf+KLE97jwmdf8mrJfwkPSz81CO25752V7vn0UH9H+u61rKffMbe3l+gTjHGM+zGHP5Yk78pv+xnh+Ff5hQZ+iZ3/vzO9SUve6qw+VNj/y55E+gnYT9v+Pz+vWQv3LmD0U8h76c374cj8wu/frOH6bmb2UvNcfZM7E18Z2/LXv+nFXm9xessr8/MirT+zvu8ysFBQWVVupGt8cjopoa4AaDKFJHN5HUtvRB/KMa8E3GLGJH4kZDR+pIHOg4JbEmcUFidwLx4ayOMzU9LkfmeDCluTiSiR39O8+D2/G8agt6nmbeZh3Muph1yrqu/wDiFlMnviUAAA==");
 
 // asd.html
 var asd_default = `<!DOCTYPE html>
@@ -51728,181 +51655,24 @@ var addonOptions = {
   logLevel: process.env.ADDON_LOG_LEVEL || "info"
 };
 if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPort > 65535) {
-  logger.warning(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
+  logger.warn(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
   addonOptions.uiPort = 5e3;
 }
-logger.info(
-  `Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`
-);
+logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
 var inHass = !!process.env.SUPERVISOR_TOKEN;
 logger.info(`Running inside Home Assistant environment: ${inHass}`);
-var BOUNDARY = "cam-handler-boundary";
-var responses = {};
-var audioResponses = {};
 var sessions2 = {};
 var activeDiscoveryEmitter = null;
 var httpServer = null;
-var oMap = [1, 8, 3, 6];
-var oMapMirror = [2, 7, 4, 5];
-var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
-  return { [cur]: createExifOrientation(cur), ...acc };
-}, {});
+var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => ({ [cur]: createExifOrientation(cur), ...acc }), {});
 var cameraName = (id) => {
-  var _a2;
-  return ((_a2 = config2.cameras[id]) == null ? void 0 : _a2.alias) || id;
-};
-var handleDeviceDiscovered = (rinfo, dev) => {
-  var _a2;
-  const safeDevId = dev.devId.replace(/[\s+#\/]/g, "_");
-  if (sessions2[safeDevId]) {
-    logger.debug(`Camera ${safeDevId} at ${rinfo.address} already in active session.`);
-    return;
-  }
-  logger.info(`Handling newly discovered camera: ${safeDevId} at ${rinfo.address}`);
-  responses[safeDevId] = [];
-  audioResponses[safeDevId] = [];
-  const s = makeSession(Handlers, dev, rinfo, startSessionCallback, 5e3);
-  sessions2[safeDevId] = s;
-  if (!config2.cameras[safeDevId]) {
-    config2.cameras[safeDevId] = { rotate: 0, mirror: false, audio: true };
-  } else {
-    config2.cameras[safeDevId] = { rotate: 0, mirror: false, audio: true, ...config2.cameras[safeDevId] };
-  }
-  s.eventEmitter.on("frame", () => {
-    var _a3;
-    if (!s || !s.curImage || s.curImage.length === 0) return;
-    try {
-      const camConfig = config2.cameras[safeDevId] || { rotate: 0, mirror: false };
-      let orientation = camConfig.rotate || 0;
-      orientation = camConfig.mirror ? oMapMirror[orientation] : oMap[orientation];
-      const exifSegment = orientations[orientation];
-      const jpegHeader = addExifToJpeg(s.curImage[0], exifSegment);
-      const assembled = Buffer.concat([jpegHeader, ...s.curImage.slice(1)]);
-      const header = Buffer.from(
-        `\r
---${BOUNDARY}\r
-Content-Type: image/jpeg\r
-Content-Length: ${assembled.length}\r
-\r
-`
-      );
-      (_a3 = responses[safeDevId]) == null ? void 0 : _a3.forEach((res, index) => {
-        if (!res.writable || res.destroyed || res.writableEnded) return;
-        try {
-          res.write(header);
-          res.write(assembled);
-        } catch (writeError) {
-          logger.error(
-            `FRAME ${safeDevId}: ERROR writing to listener ${index}: ${writeError.message}. Removing listener.`
-          );
-          if (responses[safeDevId]) {
-            responses[safeDevId] = responses[safeDevId].filter((r) => r !== res);
-          }
-          if (!res.destroyed) {
-            res.destroy(writeError);
-          }
-        }
-      });
-    } catch (frameError) {
-      logger.error(`Error processing frame for ${safeDevId}: ${frameError.message}`);
-    }
-  });
-  s.eventEmitter.on("disconnect", () => {
-    logger.info(`Camera ${safeDevId} session disconnected.`);
-    delete sessions2[safeDevId];
-    delete responses[safeDevId];
-    delete audioResponses[safeDevId];
-  });
-  if ((_a2 = config2.cameras[safeDevId]) == null ? void 0 : _a2.audio) {
-    s.eventEmitter.on("audio", ({ data }) => {
-      var _a3;
-      const b64encoded = Buffer.from(data).toString("base64");
-      (_a3 = audioResponses[safeDevId]) == null ? void 0 : _a3.forEach((res) => {
-        if (!res.writable || res.destroyed || res.writableEnded) return;
-        try {
-          res.write(`data: ${b64encoded}
-
-`);
-        } catch (e) {
-          logger.warning(`Error writing audio to listener: ${e.message}`);
-        }
-      });
-    });
-  }
-  if (inHass) {
-    logger.info(`Attempting actions for discovered device ${safeDevId} in HA environment.`);
-    sendCameraDiscoveredNotification(dev.devId, rinfo.address, addonOptions.uiPort).catch(
-      (err) => logger.error(`Notify error during session creation: ${err.message}`)
-    );
-    if (addonOptions.mqttEnabled) {
-      const mqttClient = getMqttClient();
-      if (mqttClient && mqttClient.connected) {
-        logger.info(`MQTT Discovery: Attempting for ${safeDevId}`);
-        const deviceId = `yz-${safeDevId}`;
-        const configTopic = `homeassistant/camera/${deviceId}/config`;
-        const baseUrl = `http://localhost:${addonOptions.uiPort}/camera/${dev.devId}`;
-        const configPayload = {
-          name: `Camera ${dev.devId}`,
-          unique_id: deviceId,
-          topic: `camera/${deviceId}/state`,
-          // Relative topic is fine
-          mjpeg_url: baseUrl,
-          still_image_url: baseUrl,
-          // Remove username/password unless required by your stream
-          device: {
-            identifiers: ["camera-handler-addon"],
-            // Consistent ID for the addon device
-            name: "X9/A5 Camera Handler",
-            manufacturer: "YeonV Addons",
-            // Your name/brand
-            model: "X9/A5 Handler",
-            sw_version: package_default.version || "unknown",
-            // Use version from package.json
-            configuration_url: `homeassistant://hassio/ingress/${process.env.ADDON_SLUG || "self"}`
-          }
-        };
-        const payloadString = JSON.stringify(configPayload);
-        logger.debug(`MQTT Payload for ${safeDevId}: ${payloadString}`);
-        mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
-          if (err) logger.error(`MQTT Discovery publish error for ${safeDevId}: ${err.message}`);
-          else logger.info(`MQTT Discovery published for ${safeDevId}`);
-        });
-      } else {
-        logger.warning(`MQTT Discovery enabled but client not connected during session creation for ${safeDevId}.`);
-      }
-    } else {
-      logger.info(`MQTT Discovery disabled, skipping for ${safeDevId}.`);
-    }
-  }
-};
-var startSessionCallback = (s) => {
-  try {
-    startVideoStream(s);
-    logger.info(`Camera ${s.devName} session handshake complete, requested video stream.`);
-  } catch (startError) {
-    logger.error(`Error starting video stream for ${s.devName}: ${startError.message}`);
-    s.close();
-  }
+  var _a2, _b2;
+  return ((_b2 = (_a2 = config2.cameras) == null ? void 0 : _a2[id]) == null ? void 0 : _b2.alias) || id;
 };
 var setupDiscoveryListener = (emitter) => {
-  logger.debug("Attaching discovery listeners...");
-  emitter.on("discover", handleDeviceDiscovered);
-  emitter.on("close", () => {
-    logger.info("A discovery process finished.");
-    if (emitter === activeDiscoveryEmitter) {
-      activeDiscoveryEmitter = null;
-    }
-  });
-  emitter.on("error", (err) => {
-    logger.error(`Discovery emitter error: ${err.message}`);
-    if (emitter === activeDiscoveryEmitter) {
-      activeDiscoveryEmitter = null;
-    }
-  });
 };
 var serveHttp = (port) => {
   if (inHass && addonOptions.mqttEnabled) {
-    logger.info("MQTT Discovery enabled, initializing MQTT client...");
     initializeMqtt();
   }
   logger.info("Starting initial device discovery on server startup...");
@@ -51910,21 +51680,22 @@ var serveHttp = (port) => {
   setupDiscoveryListener(initialDevEv);
   activeDiscoveryEmitter = initialDevEv;
   httpServer = import_node_http.default.createServer((req, res) => {
+    var _a2;
     const requestUrl = req.url || "/";
+    const method = req.method || "GET";
     const headers = req.headers;
     const clientIp = headers["x-forwarded-for"] || req.socket.remoteAddress;
-    const method = req.method || "GET";
     logger.info(`>>> Request Received: ${method} ${requestUrl} From: ${clientIp}`);
     logger.debug(`    Headers: ${JSON.stringify(headers, null, 2)}`);
     const ingressPath = inHass ? headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "" : "";
     const basePath = ingressPath;
-    const fullUrl = `http://${req.headers.host}${requestUrl}`;
-    logger.debug(`Request IN: ${req.method} ${requestUrl} (Base Path: '${basePath}')`);
+    const fullUrl = `http://${req.headers.host || "localhost"}${requestUrl}`;
+    logger.debug(`    Resolved Base Path: '${basePath}'`);
     try {
       if (requestUrl.startsWith("/ui/") || basePath && requestUrl.startsWith(`${basePath}/ui/`)) {
-        const url = new URL(fullUrl);
+        logger.debug(`Routing to /ui/ handler for ${requestUrl}`);
+        const url = new import_node_url.URL(fullUrl);
         const devId = url.pathname.split("/")[basePath ? 5 : 2];
-        logger.debug(`Handling /ui/ request for ID: ${devId}`);
         const session = sessions2[devId];
         if (!session) {
           res.writeHead(404);
@@ -51936,153 +51707,230 @@ var serveHttp = (port) => {
           res.end("Camera offline");
           return;
         }
-        const cameraData = config2.cameras[devId];
+        const cameraData = (_a2 = config2.cameras) == null ? void 0 : _a2[devId];
         const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, (cameraData == null ? void 0 : cameraData.audio) ? "true" : "false").replace(/"\/camera\/\$\{id\}"/g, `"${basePath}/camera/${devId}"`);
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(ui2);
         return;
       }
       if (requestUrl.startsWith("/audio/") || basePath && requestUrl.startsWith(`${basePath}/audio/`)) {
-        const devId = requestUrl.split("/")[basePath ? 5 : 2];
-        logger.debug(`Handling /audio/ request for ID: ${devId}`);
-        const s = sessions2[devId];
-        if (!s) {
-          res.writeHead(404);
-          res.end("Invalid ID");
-          return;
-        }
-        if (!s.connected) {
-          res.writeHead(503);
-          res.end("Camera offline");
-          return;
-        }
-        res.setHeader("Content-Type", `text/event-stream`);
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-        res.writeHead(200);
-        audioResponses[devId] = audioResponses[devId] || [];
-        audioResponses[devId].push(res);
-        logger.info(`Audio stream listener added for camera ${devId}. Count: ${audioResponses[devId].length}`);
-        req.on("close", () => {
-          logger.info(`Audio stream closed for ${devId}.`);
-          audioResponses[devId] = audioResponses[devId].filter((r) => r !== res);
-        });
         return;
       }
       if (requestUrl.startsWith("/favicon.ico") || basePath && requestUrl.startsWith(`${basePath}/favicon.ico`)) {
-        res.setHeader("Content-Type", "image/x-icon");
-        res.setHeader("Content-Encoding", "gzip");
-        res.end(Buffer.from(cam_ico_default));
         return;
       }
       if (requestUrl.startsWith("/rotate/")) {
-        const devId = requestUrl.split("/")[2];
-        if (config2.cameras[devId]) {
-          let curPos = config2.cameras[devId].rotate || 0;
-          config2.cameras[devId].rotate = (curPos + 1) % 4;
-          logger.debug(`Rotating ${devId} to ${config2.cameras[devId].rotate}`);
-          res.writeHead(204);
-          res.end();
-        } else {
-          res.writeHead(404);
-          res.end("Not Found");
-        }
         return;
       }
       if (requestUrl.startsWith("/mirror/")) {
-        const devId = requestUrl.split("/")[2];
-        if (config2.cameras[devId]) {
-          config2.cameras[devId].mirror = !config2.cameras[devId].mirror;
-          logger.debug(`Mirroring ${devId}: ${config2.cameras[devId].mirror}`);
-          res.writeHead(204);
-          res.end();
-        } else {
-          res.writeHead(404);
-          res.end("Not Found");
-        }
         return;
       }
       if (requestUrl.startsWith("/camera/") || basePath && requestUrl.startsWith(`${basePath}/camera/`)) {
-        const devId = requestUrl.split("/")[basePath ? 5 : 2];
-        logger.debug(`Handling /camera/ stream request for ID: ${devId}`);
-        const s = sessions2[devId];
-        if (!s) {
-          logger.warning(`Stream requested for unknown session: ${devId}`);
-          res.writeHead(404);
-          res.end("Camera not discovered");
-          return;
-        }
-        if (!s.connected) {
-          logger.warning(`Stream requested for offline session: ${devId}`);
-          res.writeHead(503);
-          res.end("Camera offline");
-          return;
-        }
-        res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
-        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-        res.writeHead(200);
-        res.write(`\r
---${BOUNDARY}\r
-`);
-        responses[devId] = responses[devId] || [];
-        responses[devId].push(res);
-        logger.debug(`MJPEG stream listener added for ${devId}. Count: ${responses[devId].length}`);
-        res.on("close", () => {
-          var _a2;
-          logger.debug(`MJPEG stream response closed for camera ${devId}.`);
-          responses[devId] = ((_a2 = responses[devId]) == null ? void 0 : _a2.filter((r) => r !== res)) || [];
-        });
-        res.on("error", (err) => {
-          var _a2;
-          logger.error(`ERROR on MJPEG response stream for ${devId}: ${err.message}`);
-          responses[devId] = ((_a2 = responses[devId]) == null ? void 0 : _a2.filter((r) => r !== res)) || [];
-        });
         return;
       }
       if (requestUrl.startsWith("/discover") || basePath && requestUrl.startsWith(`${basePath}/discover`)) {
-        logger.info("Discovery triggered by client via /discover endpoint.");
-        if (activeDiscoveryEmitter) {
-          logger.warning("Discovery is already running.");
-          res.writeHead(409, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ message: "Discovery already in progress." }));
-        } else {
-          logger.info("Starting user-triggered device discovery...");
-          const triggeredDevEv = discoverDevices(config2.discovery_ips);
-          setupDiscoveryListener(triggeredDevEv);
-          activeDiscoveryEmitter = triggeredDevEv;
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ message: "Discovery started for 10 seconds." }));
-        }
         return;
       }
-      if (requestUrl === "/" || requestUrl === "//" || // Handle double slash from Ingress explicitly
-      basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
+      if (requestUrl === "/" || requestUrl === "//" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
         logger.debug(`Routing to / (root) handler for request path: "${requestUrl}"`);
-        logger.debug(`Rendering SIMPLIFIED main page.`);
         try {
-          res.setHeader("Content-Type", "text/html");
-          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+          res.setHeader("Pragma", "no-cache");
+          res.setHeader("Expires", "0");
           res.writeHead(200);
-          res.write("<!DOCTYPE html><html><head><title>Test Page (Root)</title></head><body>");
-          res.write("<h1>Camera Handler Test (Root)</h1>");
-          res.write("<p>Server is running.</p>");
-          res.write(`<div>Sessions found: ${Object.keys(sessions2).length}</div>`);
-          res.write(`<div>Request URL: ${requestUrl}</div>`);
-          res.write(`<div>Base Path Detected: '${basePath}'</div>`);
-          res.write("</body></html>");
+          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">`);
+          res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
+          res.write(`<title>${inHass ? "Camera Handler" : "All Cameras"}</title>`);
+          res.write(`<style>
+                        /* General Styles */
+                        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; transition: background-color 0.3s, color 0.3s; }
+                        body::-webkit-scrollbar { background-color: #ffffff30; width: 8px; border-radius: 8px; }
+                        body::-webkit-scrollbar-track { background-color: #00000060; border-radius: 8px; }
+                        body::-webkit-scrollbar-thumb { background-color: #555555; border-radius: 8px; }
+                        body::-webkit-scrollbar-button { display: none; }
+                        body.dark-mode { background-color: #121212; color: #f4f4f4; }
+                        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; color: white; background-color: ${inHass ? "#18bcf2" : "#0078d7"}; }
+                        header.dark-mode { background-color: ${inHass ? "#18bcf2" : "#005a9e"}; }
+                        header h1 { margin: 0; font-size: 1.5em; }
+                        header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; line-height: 1; }
+                        header button:hover { opacity: 0.8; }
+                        .camera-container { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+                        .camera-container.grid-view { flex-direction: row; flex-wrap: wrap; }
+                        /* Camera Item & Info Styles */
+                        .camera-info, .camera-item { background-color: white; border: 1px solid #ccc; border-radius: 8px; padding: 15px; }
+                        .camera-info.dark-mode, .camera-item.dark-mode { background-color: #1e1e1e; border-color: #444; }
+                        .camera-item { display: flex; flex-direction: row; align-items: center; text-decoration: none; color: inherit; }
+                        .camera-item:hover { background-color: #f0f0f0; }
+                        .camera-item.dark-mode:hover { background-color: #2c2c2c; }
+                        .camera-item img { max-width: 320px; max-height: 240px; border-radius: 4px; border: 1px solid #ccc; display: block; } /* Adjusted size */
+                        .camera-item .camera-info { margin-left: 20px; border: none; padding: 0; background: none; } /* Nested info */
+                        .info-table { display: flex; flex-direction: column; gap: 8px; }
+                        .info-table > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+                        .info-title { font-weight: bold; min-width: 50px; }
+                        code { font-size: 0.9em; border-radius: 4px; padding: 3px 6px; background-color: #eee; color: #333; border: 1px solid #ccc; word-break: break-all; }
+                        .dark-mode code { background-color: #333; color: #eee; border-color: #555; }
+                        .copy-this { cursor: pointer; padding: 3px 6px; font-size: 1.1em; border: 1px solid #ccc; border-radius: 4px; background-color: #f0f0f0; line-height: 1; }
+                        .dark-mode .copy-this { background-color: #444; border-color: #666; color: #eee; }
+                        .badge img { vertical-align: middle; height: 1.2em; }
+                        .edit-friendly-name { background: none; border: none; color: inherit; font-size: 16px; cursor: pointer; transform: scale(-1, 1); padding: 0 5px;}
+                        .edit-friendly-name:hover { color: #0078d7; }
+                        /* Grid view adjustments */
+                        .camera-container.grid-view .camera-item { flex-direction: column; max-width: 350px; }
+                        .camera-container.grid-view .camera-item img { margin: 0 auto; }
+                        .camera-container.grid-view .camera-item .info-table { display: none; }
+                        .grid-name { display: none; text-align: center; font-weight: bold; margin-top: 10px; }
+                        .camera-container.grid-view .grid-name { display: block; }
+                    </style></head>`);
+          res.write(`<body><header>
+                        <h1>${inHass ? "Camera Handler" : "All Cameras"}</h1>
+                        <div>
+                          <button id="discoverDevices" title="Discover Devices">\uF5D8</button>
+                          <button id="darkModeToggle" title="Toggle Dark Mode">\uF505</button>
+                          ${!inHass ? '<button id="viewToggle" title="Toggle View">\u229E</button>' : ""}
+                        </div>
+                      </header>
+                      <div class="camera-container" id="cameraContainer">`);
+          if (inHass) {
+            res.write(`<div class="camera-info" id="instructions">
+                            Click Discover (\uF5D8) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration.
+                            </div>`);
+            if (Object.keys(sessions2).length === 0) {
+              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
+            } else {
+              Object.keys(sessions2).forEach((id) => {
+                const session = sessions2[id];
+                const urlToCopy = `http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/${id}`;
+                res.write(`<div class="camera-info" data-session-id="${id}">
+                                    <div class="info-table">
+                                      <div>
+                                        <span class="info-title">${cameraName(id)} (${id})</span>
+                                        <code>${urlToCopy}</code>
+                                        <button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="${urlToCopy}">\u{1F4CB}</button>
+                                        <a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a>
+                                        <span style="margin-left: auto; font-size: 0.9em;">(IP: ${(session == null ? void 0 : session.dst_ip) || "N/A"})</span>
+                                      </div>
+                                    </div>
+                                  </div>`);
+              });
+            }
+          } else {
+            if (Object.keys(sessions2).length === 0) {
+              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
+            } else {
+              Object.keys(sessions2).forEach((id) => {
+                const session = sessions2[id];
+                const currentFriendlyName = cameraName(id);
+                res.write(`<a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="${id}">
+                                    <img src="${basePath}/camera/${id}" alt="Camera ${currentFriendlyName}" style="max-width: 320px; max-height: 240px;" onerror="this.style.display='none'; this.onerror=null;">
+                                    <div class="camera-info">
+                                      <div class="info-table">
+                                        <div><span class="info-title">ID:</span> ${id}</div>
+                                        <div><span class="info-title">Name:</span> ${currentFriendlyName}</div>
+                                        <div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${currentFriendlyName}</span><button class="edit-friendly-name" data-id="${id}">\u270E</button></div>
+                                        <div><span class="info-title">IP:</span> ${(session == null ? void 0 : session.dst_ip) || "N/A"}</div>
+                                      </div>
+                                      <div class="grid-name">${currentFriendlyName}</div>
+                                    </div>
+                                  </a>`);
+              });
+            }
+          }
+          res.write(`</div>`);
+          res.write(`<script>
+                        // Copy-to-clipboard
+                        document.querySelectorAll('.copy-this').forEach(button => {
+                          button.addEventListener('click', (e) => {
+                            e.preventDefault(); // Prevent navigation if inside <a>
+                            const content = button.getAttribute('data-content');
+                            navigator.clipboard.writeText(content).then(() => {
+                              console.log('Copied: ' + content);
+                              const originalText = button.textContent; button.textContent = '\u2705';
+                              setTimeout(() => { button.textContent = originalText; }, 1500);
+                            }).catch(err => { console.error('Copy failed: ', err); });
+                          });
+                        });
+                        const basePath = "${basePath}";
+                        const cameraContainer = document.getElementById('cameraContainer');
+
+                        // Dark Mode Logic
+                        const darkModeToggle = document.getElementById('darkModeToggle');
+                        function applyDarkMode(isDark) {
+                            document.body.classList.toggle('dark-mode', isDark);
+                            document.querySelector('header')?.classList.toggle('dark-mode', isDark);
+                            document.querySelectorAll('.camera-info, .camera-item').forEach(item => item.classList.toggle('dark-mode', isDark));
+                        }
+                        if (localStorage.getItem('darkMode') === 'true') { applyDarkMode(true); } // Apply on load
+                        darkModeToggle?.addEventListener('click', () => {
+                          const isDark = document.body.classList.toggle('dark-mode');
+                          localStorage.setItem('darkMode', isDark);
+                          applyDarkMode(isDark);
+                        });
+
+                        // Discover Button
+                        document.getElementById('discoverDevices')?.addEventListener('click', () => {
+                          fetch(\`\${basePath}/discover\`)
+                            .then(response => response.ok ? response.json() : Promise.reject(new Error(\`HTTP \${response.status}\`)))
+                            .then(data => {
+                                alert(data.message || 'Discovery started.');
+                                // Optionally reload page after discovery timeout (e.g., 11 seconds)
+                                // setTimeout(() => { window.location.reload(); }, 11000);
+                             })
+                            .catch(err => { console.error('Error triggering discovery:', err); alert(\`Failed to start discovery: \${err.message}\`); });
+                        });
+
+                        // View Toggle (Standalone only)
+                        const viewToggle = document.getElementById('viewToggle');
+                        if (viewToggle && cameraContainer) {
+                            viewToggle.addEventListener('click', () => cameraContainer.classList.toggle('grid-view'));
+                        }
+
+                        // Friendly Name Edit (Standalone only)
+                        if (!${inHass}) {
+                            document.querySelectorAll('.camera-item').forEach(item => {
+                                const id = item.dataset.id;
+                                if(!id) return;
+                                const friendlyName = localStorage.getItem(\`friendlyName_\${id}\`) || cameraName(id); // Use server name as default
+                                const nameSpan = document.getElementById(\`friendlyName_\${id}\`);
+                                if(nameSpan) nameSpan.innerText = friendlyName;
+                                const gridNameDiv = item.querySelector(\`.grid-name\`);
+                                if(gridNameDiv) gridNameDiv.textContent = friendlyName;
+                                // Update link href? Maybe not needed if name isn't passed via query anymore
+                            });
+                            document.querySelectorAll('.edit-friendly-name').forEach(button => {
+                              button.addEventListener('click', (e) => {
+                                e.preventDefault(); // Stop link navigation
+                                const id = button.dataset.id;
+                                if(!id) return;
+                                const nameSpan = document.getElementById(\`friendlyName_\${id}\`);
+                                const currentName = nameSpan ? nameSpan.innerText : id;
+                                const newName = prompt('Enter new friendly name:', currentName);
+                                if (newName !== null && newName.trim() !== '') {
+                                  localStorage.setItem(\`friendlyName_\${id}\`, newName);
+                                  if(nameSpan) nameSpan.innerText = newName;
+                                  const gridNameDiv = button.closest('.camera-item')?.querySelector('.grid-name');
+                                  if(gridNameDiv) gridNameDiv.textContent = newName;
+                                  // Update link href if needed
+                                }
+                              });
+                            });
+                            // Need cameraName JS function if used in script above
+                             const configCameras = ${JSON.stringify(config2.cameras || {})}; // Pass server config safely
+                             function cameraName(id) { return configCameras[id]?.alias || id; }
+                        }
+                      </script>`);
+          res.write(`</body></html>`);
           res.end();
-          logger.debug("Simplified page rendered successfully for root request.");
+          logger.debug("Full root page rendered successfully.");
           return;
         } catch (renderError) {
-          logger.error(`!!! Error rendering simplified root page: ${renderError.message}
+          logger.error(`!!! Error rendering root page: ${renderError.message}
 ${renderError.stack}`);
           if (!res.writableEnded) {
             if (!res.headersSent) {
               res.writeHead(500);
             }
-            res.end("Internal Server Error during render");
+            res.end("Internal Server Error during page render");
           }
           return;
         }
@@ -52092,7 +51940,7 @@ ${renderError.stack}`);
         res.end("Not Found");
       }
     } catch (routeError) {
-      logger.error(`Error handling route ${requestUrl}: ${routeError.message}
+      logger.error(`!!! Top-level error handling route ${requestUrl}: ${routeError.message}
 ${routeError.stack}`);
       if (!res.writableEnded) {
         if (!res.headersSent) {
@@ -52102,38 +51950,15 @@ ${routeError.stack}`);
       }
     }
   });
-  logger.info(`Camera Handler v${package_default.version} starting HTTP server on port ${port}`);
+  logger.info(`Camera Handler v${package_default.version} attempting to listen on port ${port}`);
   httpServer.listen(port, () => {
     logger.info(`Server is now actively listening on port ${port}`);
   });
   httpServer.on("error", (err) => {
-    logger.error(`HTTP server failed to start or encountered an error: ${err.message}`);
+    logger.error(`HTTP server error: ${err.message}`);
     process.exit(1);
   });
   process.on("SIGTERM", () => {
-    logger.info("SIGTERM signal received. Shutting down...");
-    if (activeDiscoveryEmitter) {
-      logger.info("Stopping active discovery process...");
-      stopDiscovery(activeDiscoveryEmitter);
-      activeDiscoveryEmitter = null;
-    }
-    if (inHass && addonOptions.mqttEnabled) {
-      logger.info("Closing MQTT client...");
-      closeMqtt();
-    }
-    if (httpServer) {
-      logger.info("Closing HTTP server...");
-      httpServer.close(() => {
-        logger.info("HTTP server closed.");
-        process.exit(0);
-      });
-      setTimeout(() => {
-        logger.warning("Graceful HTTP shutdown timed out. Forcing exit.");
-        process.exit(1);
-      }, 5e3);
-    } else {
-      process.exit(0);
-    }
   });
 };
 
