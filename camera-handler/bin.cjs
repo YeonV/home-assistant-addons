@@ -41,15 +41,14 @@ var __privateWrapper = (obj, member, setter, getter) => ({
     return __privateGet(obj, member, getter);
   }
 });
-var __toBinaryNode = (base64) => new Uint8Array(Buffer.from(base64, "base64"));
 
 // node_modules/y18n/build/index.cjs
 var require_build = __commonJS({
   "node_modules/y18n/build/index.cjs"(exports2, module2) {
     "use strict";
-    var fs3 = require("fs");
+    var fs4 = require("fs");
     var util = require("util");
-    var path = require("path");
+    var path2 = require("path");
     var shim2;
     var Y18N2 = class {
       constructor(opts) {
@@ -211,14 +210,14 @@ var require_build = __commonJS({
     }
     var nodePlatformShim = {
       fs: {
-        readFileSync: fs3.readFileSync,
-        writeFile: fs3.writeFile
+        readFileSync: fs4.readFileSync,
+        writeFile: fs4.writeFile
       },
       format: util.format,
-      resolve: path.resolve,
+      resolve: path2.resolve,
       exists: (file) => {
         try {
-          return fs3.statSync(file).isFile();
+          return fs4.statSync(file).isFile();
         } catch (err) {
           return false;
         }
@@ -236,8 +235,8 @@ var require_build2 = __commonJS({
   "node_modules/yargs/node_modules/yargs-parser/build/index.cjs"(exports2, module2) {
     "use strict";
     var util = require("util");
-    var path = require("path");
-    var fs3 = require("fs");
+    var path2 = require("path");
+    var fs4 = require("fs");
     function camelCase2(str) {
       const isCamelCase = str !== str.toLowerCase() && str !== str.toUpperCase();
       if (!isCamelCase) {
@@ -1180,13 +1179,13 @@ var require_build2 = __commonJS({
         return env2;
       },
       format: util.format,
-      normalize: path.normalize,
-      resolve: path.resolve,
-      require: (path2) => {
+      normalize: path2.normalize,
+      resolve: path2.resolve,
+      require: (path3) => {
         if (typeof require !== "undefined") {
-          return require(path2);
-        } else if (path2.match(/\.json$/)) {
-          return JSON.parse(fs3.readFileSync(path2, "utf8"));
+          return require(path3);
+        } else if (path3.match(/\.json$/)) {
+          return JSON.parse(fs4.readFileSync(path3, "utf8"));
         } else {
           throw Error("only .json config files are supported in ESM");
         }
@@ -2179,15 +2178,15 @@ var require_route = __commonJS({
       };
     }
     function wrapConversion(toModel, graph) {
-      const path = [graph[toModel].parent, toModel];
+      const path2 = [graph[toModel].parent, toModel];
       let fn = conversions[graph[toModel].parent][toModel];
       let cur = graph[toModel].parent;
       while (graph[cur].parent) {
-        path.unshift(graph[cur].parent);
+        path2.unshift(graph[cur].parent);
         fn = link(conversions[graph[cur].parent][cur], fn);
         cur = graph[cur].parent;
       }
-      fn.conversion = path;
+      fn.conversion = path2;
       return fn;
     }
     module2.exports = function(fromModel) {
@@ -2890,7 +2889,7 @@ var require_get_caller_file = __commonJS({
 var require_require_directory = __commonJS({
   "node_modules/require-directory/index.js"(exports2, module2) {
     "use strict";
-    var fs3 = require("fs");
+    var fs4 = require("fs");
     var join = require("path").join;
     var resolve5 = require("path").resolve;
     var dirname3 = require("path").dirname;
@@ -2904,21 +2903,21 @@ var require_require_directory = __commonJS({
         return obj;
       }
     };
-    function checkFileInclusion(path, filename, options) {
+    function checkFileInclusion(path2, filename, options) {
       return (
         // verify file has valid extension
         new RegExp("\\.(" + options.extensions.join("|") + ")$", "i").test(filename) && // if options.include is a RegExp, evaluate it and make sure the path passes
-        !(options.include && options.include instanceof RegExp && !options.include.test(path)) && // if options.include is a function, evaluate it and make sure the path passes
-        !(options.include && typeof options.include === "function" && !options.include(path, filename)) && // if options.exclude is a RegExp, evaluate it and make sure the path doesn't pass
-        !(options.exclude && options.exclude instanceof RegExp && options.exclude.test(path)) && // if options.exclude is a function, evaluate it and make sure the path doesn't pass
-        !(options.exclude && typeof options.exclude === "function" && options.exclude(path, filename))
+        !(options.include && options.include instanceof RegExp && !options.include.test(path2)) && // if options.include is a function, evaluate it and make sure the path passes
+        !(options.include && typeof options.include === "function" && !options.include(path2, filename)) && // if options.exclude is a RegExp, evaluate it and make sure the path doesn't pass
+        !(options.exclude && options.exclude instanceof RegExp && options.exclude.test(path2)) && // if options.exclude is a function, evaluate it and make sure the path doesn't pass
+        !(options.exclude && typeof options.exclude === "function" && options.exclude(path2, filename))
       );
     }
-    function requireDirectory(m, path, options) {
+    function requireDirectory(m, path2, options) {
       var retval = {};
-      if (path && !options && typeof path !== "string") {
-        options = path;
-        path = null;
+      if (path2 && !options && typeof path2 !== "string") {
+        options = path2;
+        path2 = null;
       }
       options = options || {};
       for (var prop in defaultOptions) {
@@ -2926,10 +2925,10 @@ var require_require_directory = __commonJS({
           options[prop] = defaultOptions[prop];
         }
       }
-      path = !path ? dirname3(m.filename) : resolve5(dirname3(m.filename), path);
-      fs3.readdirSync(path).forEach(function(filename) {
-        var joined = join(path, filename), files, key, obj;
-        if (fs3.statSync(joined).isDirectory() && options.recurse) {
+      path2 = !path2 ? dirname3(m.filename) : resolve5(dirname3(m.filename), path2);
+      fs4.readdirSync(path2).forEach(function(filename) {
+        var joined = join(path2, filename), files, key, obj;
+        if (fs4.statSync(joined).isDirectory() && options.recurse) {
           files = requireDirectory(m, joined, options);
           if (Object.keys(files).length) {
             retval[options.rename(filename, joined, filename)] = files;
@@ -12058,15 +12057,15 @@ var require_route2 = __commonJS({
       };
     }
     function wrapConversion(toModel, graph) {
-      var path = [graph[toModel].parent, toModel];
+      var path2 = [graph[toModel].parent, toModel];
       var fn = conversions[graph[toModel].parent][toModel];
       var cur = graph[toModel].parent;
       while (graph[cur].parent) {
-        path.unshift(graph[cur].parent);
+        path2.unshift(graph[cur].parent);
         fn = link(conversions[graph[cur].parent][cur], fn);
         cur = graph[cur].parent;
       }
-      fn.conversion = path;
+      fn.conversion = path2;
       return fn;
     }
     module2.exports = function(fromModel) {
@@ -12718,7 +12717,7 @@ var require_node2 = __commonJS({
 var require_tail_file = __commonJS({
   "node_modules/winston/lib/winston/tail-file.js"(exports2, module2) {
     "use strict";
-    var fs3 = require("fs");
+    var fs4 = require("fs");
     var { StringDecoder } = require("string_decoder");
     var { Stream } = require_readable();
     function noop2() {
@@ -12739,7 +12738,7 @@ var require_tail_file = __commonJS({
         stream.emit("end");
         stream.emit("close");
       };
-      fs3.open(options.file, "a+", "0644", (err, fd) => {
+      fs4.open(options.file, "a+", "0644", (err, fd) => {
         if (err) {
           if (!iter) {
             stream.emit("error", err);
@@ -12751,10 +12750,10 @@ var require_tail_file = __commonJS({
         }
         (function read() {
           if (stream.destroyed) {
-            fs3.close(fd, noop2);
+            fs4.close(fd, noop2);
             return;
           }
-          return fs3.read(fd, buffer, 0, buffer.length, pos, (error, bytes) => {
+          return fs4.read(fd, buffer, 0, buffer.length, pos, (error, bytes) => {
             if (error) {
               if (!iter) {
                 stream.emit("error", error);
@@ -12813,8 +12812,8 @@ var require_tail_file = __commonJS({
 var require_file = __commonJS({
   "node_modules/winston/lib/winston/transports/file.js"(exports2, module2) {
     "use strict";
-    var fs3 = require("fs");
-    var path = require("path");
+    var fs4 = require("fs");
+    var path2 = require("path");
     var asyncSeries = require_series();
     var zlib = require("zlib");
     var { MESSAGE } = require_triple_beam();
@@ -12844,14 +12843,14 @@ var require_file = __commonJS({
         this._onError = this._onError.bind(this);
         if (options.filename || options.dirname) {
           throwIf("filename or dirname", "stream");
-          this._basename = this.filename = options.filename ? path.basename(options.filename) : "winston.log";
-          this.dirname = options.dirname || path.dirname(options.filename);
+          this._basename = this.filename = options.filename ? path2.basename(options.filename) : "winston.log";
+          this.dirname = options.dirname || path2.dirname(options.filename);
           this.options = options.options || { flags: "a" };
         } else if (options.stream) {
           console.warn("options.stream will be removed in winston@4. Use winston.transports.Stream");
           throwIf("stream", "filename", "maxsize");
           this._dest = this._stream.pipe(this._setupStream(options.stream));
-          this.dirname = path.dirname(this._dest.path);
+          this.dirname = path2.dirname(this._dest.path);
         } else {
           throw new Error("Cannot log to file without filename or stream.");
         }
@@ -12992,11 +12991,11 @@ var require_file = __commonJS({
           options = {};
         }
         options = normalizeQuery(options);
-        const file = path.join(this.dirname, this.filename);
+        const file = path2.join(this.dirname, this.filename);
         let buff = "";
         let results = [];
         let row = 0;
-        const stream = fs3.createReadStream(file, {
+        const stream = fs4.createReadStream(file, {
           encoding: "utf8"
         });
         stream.on("error", (err) => {
@@ -13097,7 +13096,7 @@ var require_file = __commonJS({
        * TODO: Refactor me.
        */
       stream(options = {}) {
-        const file = path.join(this.dirname, this.filename);
+        const file = path2.join(this.dirname, this.filename);
         const stream = new Stream();
         const tail = {
           file,
@@ -13149,8 +13148,8 @@ var require_file = __commonJS({
        */
       stat(callback) {
         const target = this._getFile();
-        const fullpath = path.join(this.dirname, target);
-        fs3.stat(fullpath, (err, stat) => {
+        const fullpath = path2.join(this.dirname, target);
+        fs4.stat(fullpath, (err, stat) => {
           if (err && err.code === "ENOENT") {
             debug("ENOENT\xA0ok", fullpath);
             this.filename = target;
@@ -13253,9 +13252,9 @@ var require_file = __commonJS({
        * @returns {WritableStream} Stream that writes to disk for the active file.
        */
       _createStream(source) {
-        const fullpath = path.join(this.dirname, this.filename);
+        const fullpath = path2.join(this.dirname, this.filename);
         debug("create stream start", fullpath, this.options);
-        const dest = fs3.createWriteStream(fullpath, this.options).on("error", (err) => debug(err)).on("close", () => debug("close", dest.path, dest.bytesWritten)).on("open", () => {
+        const dest = fs4.createWriteStream(fullpath, this.options).on("error", (err) => debug(err)).on("close", () => debug("close", dest.path, dest.bytesWritten)).on("open", () => {
           debug("file open ok", fullpath);
           this.emit("open", fullpath);
           source.pipe(dest);
@@ -13278,16 +13277,16 @@ var require_file = __commonJS({
        */
       _incFile(callback) {
         debug("_incFile", this.filename);
-        const ext = path.extname(this._basename);
-        const basename2 = path.basename(this._basename, ext);
+        const ext = path2.extname(this._basename);
+        const basename2 = path2.basename(this._basename, ext);
         const tasks = [];
         if (this.zippedArchive) {
           tasks.push(
             function(cb) {
               const num = this._created > 0 && !this.tailable ? this._created : "";
               this._compressFile(
-                path.join(this.dirname, `${basename2}${num}${ext}`),
-                path.join(this.dirname, `${basename2}${num}${ext}.gz`),
+                path2.join(this.dirname, `${basename2}${num}${ext}`),
+                path2.join(this.dirname, `${basename2}${num}${ext}.gz`),
                 cb
               );
             }.bind(this)
@@ -13312,8 +13311,8 @@ var require_file = __commonJS({
        * @private
        */
       _getFile() {
-        const ext = path.extname(this._basename);
-        const basename2 = path.basename(this._basename, ext);
+        const ext = path2.extname(this._basename);
+        const basename2 = path2.basename(this._basename, ext);
         const isRotation = this.rotationFormat ? this.rotationFormat() : this._created;
         return !this.tailable && this._created ? `${basename2}${isRotation}${ext}` : `${basename2}${ext}`;
       }
@@ -13333,8 +13332,8 @@ var require_file = __commonJS({
         const isOldest = oldest !== 0 ? oldest : "";
         const isZipped = this.zippedArchive ? ".gz" : "";
         const filePath = `${basename2}${isOldest}${ext}${isZipped}`;
-        const target = path.join(this.dirname, filePath);
-        fs3.unlink(target, callback);
+        const target = path2.join(this.dirname, filePath);
+        fs4.unlink(target, callback);
       }
       /**
        * Roll files forward based on integer, up to maxFiles. e.g. if base if
@@ -13356,20 +13355,20 @@ var require_file = __commonJS({
         for (let x = this.maxFiles - 1; x > 1; x--) {
           tasks.push(function(i, cb) {
             let fileName = `${basename2}${i - 1}${ext}${isZipped}`;
-            const tmppath = path.join(this.dirname, fileName);
-            fs3.exists(tmppath, (exists) => {
+            const tmppath = path2.join(this.dirname, fileName);
+            fs4.exists(tmppath, (exists) => {
               if (!exists) {
                 return cb(null);
               }
               fileName = `${basename2}${i}${ext}${isZipped}`;
-              fs3.rename(tmppath, path.join(this.dirname, fileName), cb);
+              fs4.rename(tmppath, path2.join(this.dirname, fileName), cb);
             });
           }.bind(this, x));
         }
         asyncSeries(tasks, () => {
-          fs3.rename(
-            path.join(this.dirname, `${basename2}${ext}${isZipped}`),
-            path.join(this.dirname, `${basename2}1${ext}${isZipped}`),
+          fs4.rename(
+            path2.join(this.dirname, `${basename2}${ext}${isZipped}`),
+            path2.join(this.dirname, `${basename2}1${ext}${isZipped}`),
             callback
           );
         });
@@ -13383,22 +13382,22 @@ var require_file = __commonJS({
        * @private
        */
       _compressFile(src, dest, callback) {
-        fs3.access(src, fs3.F_OK, (err) => {
+        fs4.access(src, fs4.F_OK, (err) => {
           if (err) {
             return callback();
           }
           var gzip = zlib.createGzip();
-          var inp = fs3.createReadStream(src);
-          var out = fs3.createWriteStream(dest);
+          var inp = fs4.createReadStream(src);
+          var out = fs4.createWriteStream(dest);
           out.on("finish", () => {
-            fs3.unlink(src, callback);
+            fs4.unlink(src, callback);
           });
           inp.pipe(gzip).pipe(out);
         });
       }
       _createLogDirIfNotExist(dirPath) {
-        if (!fs3.existsSync(dirPath)) {
-          fs3.mkdirSync(dirPath, { recursive: true });
+        if (!fs4.existsSync(dirPath)) {
+          fs4.mkdirSync(dirPath, { recursive: true });
         }
       }
     };
@@ -13482,9 +13481,9 @@ var require_http = __commonJS({
         };
         const auth = options.params.auth || null;
         delete options.params.auth;
-        const path = options.params.path || null;
+        const path2 = options.params.path || null;
         delete options.params.path;
-        this._request(options, auth, path, (err, res, body) => {
+        this._request(options, auth, path2, (err, res, body) => {
           if (res && res.statusCode !== 200) {
             err = new Error(`Invalid HTTP Status Code: ${res.statusCode}`);
           }
@@ -13512,12 +13511,12 @@ var require_http = __commonJS({
           method: "stream",
           params: options
         };
-        const path = options.params.path || null;
+        const path2 = options.params.path || null;
         delete options.params.path;
         const auth = options.params.auth || null;
         delete options.params.auth;
         let buff = "";
-        const req = this._request(options, auth, path);
+        const req = this._request(options, auth, path2);
         stream.destroy = () => req.destroy();
         req.on("data", (data) => {
           data = (buff + data).split(/\n+/);
@@ -13543,14 +13542,14 @@ var require_http = __commonJS({
        * @param {string} path - request path
        * @param {function} callback - Continuation to respond to when complete.
        */
-      _request(options, auth, path, callback) {
+      _request(options, auth, path2, callback) {
         options = options || {};
         auth = auth || this.auth;
-        path = path || this.path || "";
+        path2 = path2 || this.path || "";
         if (this.batch) {
-          this._doBatch(options, callback, auth, path);
+          this._doBatch(options, callback, auth, path2);
         } else {
-          this._doRequest(options, callback, auth, path);
+          this._doRequest(options, callback, auth, path2);
         }
       }
       /**
@@ -13560,18 +13559,18 @@ var require_http = __commonJS({
        * @param {Object?} auth - authentication options
        * @param {string} path - request path
        */
-      _doBatch(options, callback, auth, path) {
+      _doBatch(options, callback, auth, path2) {
         this.batchOptions.push(options);
         if (this.batchOptions.length === 1) {
           const me = this;
           this.batchCallback = callback;
           this.batchTimeoutID = setTimeout(function() {
             me.batchTimeoutID = -1;
-            me._doBatchRequest(me.batchCallback, auth, path);
+            me._doBatchRequest(me.batchCallback, auth, path2);
           }, this.batchInterval);
         }
         if (this.batchOptions.length === this.batchCount) {
-          this._doBatchRequest(this.batchCallback, auth, path);
+          this._doBatchRequest(this.batchCallback, auth, path2);
         }
       }
       /**
@@ -13580,14 +13579,14 @@ var require_http = __commonJS({
        * @param {Object?} auth - authentication options
        * @param {string} path - request path
        */
-      _doBatchRequest(callback, auth, path) {
+      _doBatchRequest(callback, auth, path2) {
         if (this.batchTimeoutID > 0) {
           clearTimeout(this.batchTimeoutID);
           this.batchTimeoutID = -1;
         }
         const batchOptionsCopy = this.batchOptions.slice();
         this.batchOptions = [];
-        this._doRequest(batchOptionsCopy, callback, auth, path);
+        this._doRequest(batchOptionsCopy, callback, auth, path2);
       }
       /**
        * Make a request to a winstond server or any http server which can
@@ -13597,7 +13596,7 @@ var require_http = __commonJS({
        * @param {Object?} auth - authentication options
        * @param {string} path - request path
        */
-      _doRequest(options, callback, auth, path) {
+      _doRequest(options, callback, auth, path2) {
         const headers = Object.assign({}, this.headers);
         if (auth && auth.bearer) {
           headers.Authorization = `Bearer ${auth.bearer}`;
@@ -13607,7 +13606,7 @@ var require_http = __commonJS({
           method: "POST",
           host: this.host,
           port: this.port,
-          path: `/${path.replace(/^\//, "")}`,
+          path: `/${path2.replace(/^\//, "")}`,
           headers,
           auth: auth && auth.username && auth.password ? `${auth.username}:${auth.password}` : "",
           agent: this.agent
@@ -15356,17 +15355,17 @@ var require_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    function visit_(key, node, visitor, path) {
-      const ctrl = callVisitor(key, node, visitor, path);
+    function visit_(key, node, visitor, path2) {
+      const ctrl = callVisitor(key, node, visitor, path2);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path, ctrl);
-        return visit_(key, ctrl, visitor, path);
+        replaceNode(key, path2, ctrl);
+        return visit_(key, ctrl, visitor, path2);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path = Object.freeze(path.concat(node));
+          path2 = Object.freeze(path2.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = visit_(i, node.items[i], visitor, path);
+            const ci = visit_(i, node.items[i], visitor, path2);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -15377,13 +15376,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path = Object.freeze(path.concat(node));
-          const ck = visit_("key", node.key, visitor, path);
+          path2 = Object.freeze(path2.concat(node));
+          const ck = visit_("key", node.key, visitor, path2);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = visit_("value", node.value, visitor, path);
+          const cv = visit_("value", node.value, visitor, path2);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -15404,17 +15403,17 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key, node, visitor, path) {
-      const ctrl = await callVisitor(key, node, visitor, path);
+    async function visitAsync_(key, node, visitor, path2) {
+      const ctrl = await callVisitor(key, node, visitor, path2);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path, ctrl);
-        return visitAsync_(key, ctrl, visitor, path);
+        replaceNode(key, path2, ctrl);
+        return visitAsync_(key, ctrl, visitor, path2);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path = Object.freeze(path.concat(node));
+          path2 = Object.freeze(path2.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = await visitAsync_(i, node.items[i], visitor, path);
+            const ci = await visitAsync_(i, node.items[i], visitor, path2);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -15425,13 +15424,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path = Object.freeze(path.concat(node));
-          const ck = await visitAsync_("key", node.key, visitor, path);
+          path2 = Object.freeze(path2.concat(node));
+          const ck = await visitAsync_("key", node.key, visitor, path2);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = await visitAsync_("value", node.value, visitor, path);
+          const cv = await visitAsync_("value", node.value, visitor, path2);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -15458,24 +15457,24 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key, node, visitor, path) {
+    function callVisitor(key, node, visitor, path2) {
       var _a2, _b2, _c2, _d, _e;
       if (typeof visitor === "function")
-        return visitor(key, node, path);
+        return visitor(key, node, path2);
       if (identity.isMap(node))
-        return (_a2 = visitor.Map) == null ? void 0 : _a2.call(visitor, key, node, path);
+        return (_a2 = visitor.Map) == null ? void 0 : _a2.call(visitor, key, node, path2);
       if (identity.isSeq(node))
-        return (_b2 = visitor.Seq) == null ? void 0 : _b2.call(visitor, key, node, path);
+        return (_b2 = visitor.Seq) == null ? void 0 : _b2.call(visitor, key, node, path2);
       if (identity.isPair(node))
-        return (_c2 = visitor.Pair) == null ? void 0 : _c2.call(visitor, key, node, path);
+        return (_c2 = visitor.Pair) == null ? void 0 : _c2.call(visitor, key, node, path2);
       if (identity.isScalar(node))
-        return (_d = visitor.Scalar) == null ? void 0 : _d.call(visitor, key, node, path);
+        return (_d = visitor.Scalar) == null ? void 0 : _d.call(visitor, key, node, path2);
       if (identity.isAlias(node))
-        return (_e = visitor.Alias) == null ? void 0 : _e.call(visitor, key, node, path);
+        return (_e = visitor.Alias) == null ? void 0 : _e.call(visitor, key, node, path2);
       return void 0;
     }
-    function replaceNode(key, path, node) {
-      const parent = path[path.length - 1];
+    function replaceNode(key, path2, node) {
+      const parent = path2[path2.length - 1];
       if (identity.isCollection(parent)) {
         parent.items[key] = node;
       } else if (identity.isPair(parent)) {
@@ -16078,10 +16077,10 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path, value) {
+    function collectionFromPath(schema, path2, value) {
       let v = value;
-      for (let i = path.length - 1; i >= 0; --i) {
-        const k = path[i];
+      for (let i = path2.length - 1; i >= 0; --i) {
+        const k = path2[i];
         if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
           const a = [];
           a[k] = v;
@@ -16100,7 +16099,7 @@ var require_Collection = __commonJS({
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
-    var isEmptyPath = (path) => path == null || typeof path === "object" && !!path[Symbol.iterator]().next().done;
+    var isEmptyPath = (path2) => path2 == null || typeof path2 === "object" && !!path2[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
       constructor(type, schema) {
         super(type);
@@ -16130,11 +16129,11 @@ var require_Collection = __commonJS({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path, value) {
-        if (isEmptyPath(path))
+      addIn(path2, value) {
+        if (isEmptyPath(path2))
           this.add(value);
         else {
-          const [key, ...rest] = path;
+          const [key, ...rest] = path2;
           const node = this.get(key, true);
           if (identity.isCollection(node))
             node.addIn(rest, value);
@@ -16148,8 +16147,8 @@ var require_Collection = __commonJS({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path) {
-        const [key, ...rest] = path;
+      deleteIn(path2) {
+        const [key, ...rest] = path2;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -16163,8 +16162,8 @@ var require_Collection = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path, keepScalar) {
-        const [key, ...rest] = path;
+      getIn(path2, keepScalar) {
+        const [key, ...rest] = path2;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -16182,8 +16181,8 @@ var require_Collection = __commonJS({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path) {
-        const [key, ...rest] = path;
+      hasIn(path2) {
+        const [key, ...rest] = path2;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -16193,8 +16192,8 @@ var require_Collection = __commonJS({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path, value) {
-        const [key, ...rest] = path;
+      setIn(path2, value) {
+        const [key, ...rest] = path2;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -18656,9 +18655,9 @@ var require_Document = __commonJS({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path, value) {
+      addIn(path2, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path, value);
+          this.contents.addIn(path2, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -18733,14 +18732,14 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path) {
-        if (Collection.isEmptyPath(path)) {
+      deleteIn(path2) {
+        if (Collection.isEmptyPath(path2)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path2) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -18755,10 +18754,10 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path, keepScalar) {
-        if (Collection.isEmptyPath(path))
+      getIn(path2, keepScalar) {
+        if (Collection.isEmptyPath(path2))
           return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-        return identity.isCollection(this.contents) ? this.contents.getIn(path, keepScalar) : void 0;
+        return identity.isCollection(this.contents) ? this.contents.getIn(path2, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -18769,10 +18768,10 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path) {
-        if (Collection.isEmptyPath(path))
+      hasIn(path2) {
+        if (Collection.isEmptyPath(path2))
           return this.contents !== void 0;
-        return identity.isCollection(this.contents) ? this.contents.hasIn(path) : false;
+        return identity.isCollection(this.contents) ? this.contents.hasIn(path2) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -18789,13 +18788,13 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path, value) {
-        if (Collection.isEmptyPath(path)) {
+      setIn(path2, value) {
+        if (Collection.isEmptyPath(path2)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, Array.from(path), value);
+          this.contents = Collection.collectionFromPath(this.schema, Array.from(path2), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path, value);
+          this.contents.setIn(path2, value);
         }
       }
       /**
@@ -20709,9 +20708,9 @@ var require_cst_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    visit.itemAtPath = (cst, path) => {
+    visit.itemAtPath = (cst, path2) => {
       let item = cst;
-      for (const [field, index] of path) {
+      for (const [field, index] of path2) {
         const tok = item == null ? void 0 : item[field];
         if (tok && "items" in tok) {
           item = tok.items[index];
@@ -20720,23 +20719,23 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit.parentCollection = (cst, path) => {
-      const parent = visit.itemAtPath(cst, path.slice(0, -1));
-      const field = path[path.length - 1][0];
+    visit.parentCollection = (cst, path2) => {
+      const parent = visit.itemAtPath(cst, path2.slice(0, -1));
+      const field = path2[path2.length - 1][0];
       const coll = parent == null ? void 0 : parent[field];
       if (coll && "items" in coll)
         return coll;
       throw new Error("Parent collection not found");
     };
-    function _visit(path, item, visitor) {
-      let ctrl = visitor(item, path);
+    function _visit(path2, item, visitor) {
+      let ctrl = visitor(item, path2);
       if (typeof ctrl === "symbol")
         return ctrl;
       for (const field of ["key", "value"]) {
         const token = item[field];
         if (token && "items" in token) {
           for (let i = 0; i < token.items.length; ++i) {
-            const ci = _visit(Object.freeze(path.concat([[field, i]])), token.items[i], visitor);
+            const ci = _visit(Object.freeze(path2.concat([[field, i]])), token.items[i], visitor);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -20747,10 +20746,10 @@ var require_cst_visit = __commonJS({
             }
           }
           if (typeof ctrl === "function" && field === "key")
-            ctrl = ctrl(item, path);
+            ctrl = ctrl(item, path2);
         }
       }
-      return typeof ctrl === "function" ? ctrl(item, path) : ctrl;
+      return typeof ctrl === "function" ? ctrl(item, path2) : ctrl;
     }
     exports2.visit = visit;
   }
@@ -22023,14 +22022,14 @@ var require_parser = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs3 = this.flowScalar(this.type);
+              const fs4 = this.flowScalar(this.type);
               if (atNextItem || it.value) {
-                map.items.push({ start, key: fs3, sep: [] });
+                map.items.push({ start, key: fs4, sep: [] });
                 this.onKeyLine = true;
               } else if (it.sep) {
-                this.stack.push(fs3);
+                this.stack.push(fs4);
               } else {
-                Object.assign(it, { key: fs3, sep: [] });
+                Object.assign(it, { key: fs4, sep: [] });
                 this.onKeyLine = true;
               }
               return;
@@ -22149,13 +22148,13 @@ var require_parser = __commonJS({
             case "scalar":
             case "single-quoted-scalar":
             case "double-quoted-scalar": {
-              const fs3 = this.flowScalar(this.type);
+              const fs4 = this.flowScalar(this.type);
               if (!it || it.value)
-                fc.items.push({ start: [], key: fs3, sep: [] });
+                fc.items.push({ start: [], key: fs4, sep: [] });
               else if (it.sep)
-                this.stack.push(fs3);
+                this.stack.push(fs4);
               else
-                Object.assign(it, { key: fs3, sep: [] });
+                Object.assign(it, { key: fs4, sep: [] });
               return;
             }
             case "flow-map-end":
@@ -48101,10 +48100,10 @@ var require_tcp = __commonJS({
     var buildStream = (client2, opts) => {
       opts.port = opts.port || 1883;
       opts.hostname = opts.hostname || opts.host || "localhost";
-      const { port, path } = opts;
+      const { port, path: path2 } = opts;
       const host = opts.hostname;
       debug("port %d and host %s", port, host);
-      return net_1.default.createConnection({ port, host, path });
+      return net_1.default.createConnection({ port, host, path: path2 });
     };
     exports2.default = buildStream;
   }
@@ -49689,11 +49688,11 @@ var parser = new YargsParser({
   resolve: import_path.resolve,
   // TODO: figure  out a  way to combine ESM and CJS coverage, such  that
   // we can exercise all the lines below:
-  require: (path) => {
+  require: (path2) => {
     if (typeof require !== "undefined") {
-      return require(path);
-    } else if (path.match(/\.json$/)) {
-      return JSON.parse((0, import_fs.readFileSync)(path, "utf8"));
+      return require(path2);
+    } else if (path2.match(/\.json$/)) {
+      return JSON.parse((0, import_fs.readFileSync)(path2, "utf8"));
     } else {
       throw Error("only .json config files are supported in ESM");
     }
@@ -50647,8 +50646,8 @@ var DefaultConfig = {
   blacklisted_ips: []
 };
 var config2 = DefaultConfig;
-var loadConfig = (path) => {
-  const data = import_node_fs.default.readFileSync(path, { encoding: "utf-8" });
+var loadConfig = (path2) => {
+  const data = import_node_fs.default.readFileSync(path2, { encoding: "utf-8" });
   config2 = (0, import_yaml.parse)(data);
   config2 = { ...DefaultConfig, ...config2 };
 };
@@ -51239,6 +51238,8 @@ var captureSingle = ({ discovery_ip, out_file }) => {
 // http_server.ts
 var import_node_http = __toESM(require("http"), 1);
 var import_node_url = require("url");
+var import_node_fs3 = __toESM(require("fs"), 1);
+var import_node_path = __toESM(require("path"), 1);
 
 // exif.ts
 var createExifOrientation = (orientation) => {
@@ -51259,6 +51260,14 @@ var createExifOrientation = (orientation) => {
   const segmentLength = Buffer.from([exifData.length + 2 >> 8, exifData.length + 2 & 255]);
   const exifHeader = Buffer.concat([Buffer.from("FFE1", "hex"), segmentLength]);
   return Buffer.concat([exifHeader, exifData]);
+};
+var addExifToJpeg = (jpegData, exifSegment) => {
+  if (jpegData.includes(Buffer.from("FFE1", "hex"))) {
+    throw new Error("JPEG already contains EXIF segment");
+  }
+  const soiEnd = 2;
+  const modifiedJpeg = Buffer.concat([jpegData.subarray(0, soiEnd), exifSegment, jpegData.subarray(soiEnd)]);
+  return modifiedJpeg;
 };
 
 // mqtt.ts
@@ -51369,7 +51378,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.58",
+  version: "0.0.60",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51394,9 +51403,6 @@ var package_default = {
   }
 };
 
-// cam.ico.gz
-var cam_ico_default = __toBinaryNode("H4sICOJhLWYAA2NhbS5pY28A7ZlPSxtBGMbfjcGUIDUQsUdzqUgP4gco5O7FL+DBHoQe8wGECO1HKIVe20vbS4v3UvALSBA8eVBEKRE0BSn9F6fP67wDw3Z2XZPZsCvzhCcvO5k/v5mdDbvvEkX4rKwQvlv0/jHRPBEtwSiiDdLlQUFB915b8Df4GlaezX2ew694IKXUSI6iaBHND+Hf8DvhnoNPcmBO8gU4Ht2VHXrtWFvW6QTZjQf1er2Skfsp3E/o52Xs+Ap+Aa979pbsH3usD2ncrVaL2T/dsg52n1eVSqUx6t7MsI6sM2u8Hyl112Qt47w/Y8f2ftrOi93i2rTHr1ar07Hrs4HyXQc3c76Rc5l0Ltbz5gffnD0mjp9Yc3sO/3JwHaPektQpFD+8zP9FiPsOnj9wN3b+isb/Fv7rYNlD3XnH/isav+v6fJZy/RSZ/wv+/2bS2heU/zu8mqV9Afk/93q9zO0LyL98l/aBP/AH/sAf+AN/4C8+v60y8YvacBf+KLE97jwmdf8mrJfwkPSz81CO25752V7vn0UH9H+u61rKffMbe3l+gTjHGM+zGHP5Yk78pv+xnh+Ff5hQZ+iZ3/vzO9SUve6qw+VNj/y55E+gnYT9v+Pz+vWQv3LmD0U8h76c374cj8wu/frOH6bmb2UvNcfZM7E18Z2/LXv+nFXm9xessr8/MirT+zvu8ysFBQWVVupGt8cjopoa4AaDKFJHN5HUtvRB/KMa8E3GLGJH4kZDR+pIHOg4JbEmcUFidwLx4ayOMzU9LkfmeDCluTiSiR39O8+D2/G8agt6nmbeZh3Muph1yrqu/wDiFlMnviUAAA==");
-
 // http_server.ts
 buildLogger(process.env.ADDON_LOG_LEVEL || "info", void 0);
 var addonOptions = {
@@ -51410,7 +51416,8 @@ if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPor
 }
 logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
 var inHass = !!process.env.SUPERVISOR_TOKEN;
-logger.info(`Running inside Home Assistant environment: ${inHass}`);
+logger.info(`Running inside Home Assistant environment (inHass): ${inHass}`);
+var BOUNDARY = "cam-handler-boundary";
 var responses = {};
 var audioResponses = {};
 var sessions2 = {};
@@ -51418,18 +51425,15 @@ var activeDiscoveryEmitter = null;
 var httpServer = null;
 var faviconBuffer = null;
 try {
-  if (typeof cam_ico_default === "string") {
-    faviconBuffer = Buffer.from(cam_ico_default, "base64");
-  } else if (cam_ico_default instanceof Buffer || cam_ico_default instanceof Uint8Array) {
-    faviconBuffer = Buffer.from(cam_ico_default);
-  } else {
-    throw new Error("Imported favicon data not recognized.");
-  }
-  logger.debug(`Favicon processed from import (${faviconBuffer.length} bytes).`);
+  const faviconPath = import_node_path.default.resolve(__dirname, "cam.ico.gz");
+  faviconBuffer = import_node_fs3.default.readFileSync(faviconPath);
+  logger.debug(`Favicon loaded successfully from ${faviconPath} (${faviconBuffer == null ? void 0 : faviconBuffer.length} bytes).`);
 } catch (favError) {
-  logger.error(`Failed to process imported favicon: ${favError.message}`);
+  logger.error(`Failed to load favicon: ${favError.message}`);
   faviconBuffer = null;
 }
+var oMap = [1, 8, 3, 6];
+var oMapMirror = [2, 7, 4, 5];
 var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => ({ [cur]: createExifOrientation(cur), ...acc }), {});
 var cameraName = (id) => {
   var _a2, _b2;
@@ -51453,16 +51457,79 @@ var handleDeviceDiscovered = (rinfo, dev) => {
     config2.cameras[safeDevId] = { rotate: 0, mirror: false, audio: true, ...config2.cameras[safeDevId] };
   }
   s.eventEmitter.on("frame", () => {
+    var _a3, _b3, _c3;
+    if (!((_a3 = s == null ? void 0 : s.curImage) == null ? void 0 : _a3.length)) return;
+    try {
+      const camConfig = ((_b3 = config2.cameras) == null ? void 0 : _b3[safeDevId]) || { rotate: 0, mirror: false };
+      let orientation = camConfig.rotate || 0;
+      orientation = camConfig.mirror ? oMapMirror[orientation] : oMap[orientation];
+      const exifSegment = orientations[orientation];
+      const jpegHeader = addExifToJpeg(s.curImage[0], exifSegment);
+      const assembled = Buffer.concat([jpegHeader, ...s.curImage.slice(1)]);
+      const header = Buffer.from(`\r
+--${BOUNDARY}\r
+Content-Type: image/jpeg\r
+Content-Length: ${assembled.length}\r
+\r
+`);
+      (_c3 = responses[safeDevId]) == null ? void 0 : _c3.forEach((res, index) => {
+        if (!res.writable || res.destroyed) return;
+        try {
+          res.write(header);
+          res.write(assembled);
+        } catch (writeError) {
+          logger.error(`FRAME ${safeDevId}: ERROR writing: ${writeError.message}. Removing listener ${index}.`);
+          if (responses[safeDevId]) responses[safeDevId] = responses[safeDevId].filter((r) => r !== res);
+          if (!res.destroyed) res.destroy(writeError);
+        }
+      });
+    } catch (frameError) {
+      logger.error(`Error processing frame for ${safeDevId}: ${frameError.message}`);
+    }
   });
   s.eventEmitter.on("disconnect", () => {
+    logger.info(`Camera ${safeDevId} session disconnected.`);
+    delete sessions2[safeDevId];
+    delete responses[safeDevId];
+    delete audioResponses[safeDevId];
   });
   if ((_c2 = (_b2 = config2.cameras) == null ? void 0 : _b2[safeDevId]) == null ? void 0 : _c2.audio) {
     s.eventEmitter.on("audio", ({ data }) => {
+      var _a3;
+      const b64 = Buffer.from(data).toString("base64");
+      (_a3 = audioResponses[safeDevId]) == null ? void 0 : _a3.forEach((res) => {
+        if (!res.writable || res.destroyed) return;
+        try {
+          res.write(`data: ${b64}
+
+`);
+        } catch (e) {
+          logger.warn(`Error writing audio: ${e.message}`);
+        }
+      });
     });
   }
   if (inHass && addonOptions.mqttEnabled) {
     const mqttClient = getMqttClient();
     if (mqttClient == null ? void 0 : mqttClient.connected) {
+      logger.info(`MQTT Discovery: Attempting for new session ${safeDevId}`);
+      const deviceId = `yz-${safeDevId}`;
+      const configTopic = `homeassistant/camera/${deviceId}/config`;
+      const baseUrl = `http://localhost:${addonOptions.uiPort}/camera/${dev.devId}`;
+      const configPayload = {
+        name: `Camera ${dev.devId}`,
+        unique_id: deviceId,
+        topic: `camera/${deviceId}/state`,
+        mjpeg_url: baseUrl,
+        still_image_url: baseUrl,
+        device: { identifiers: ["camera-handler-addon"], name: "X9/A5 Camera Handler", manufacturer: "YeonV Addons", model: "X9/A5 Handler", sw_version: package_default.version || "unknown", configuration_url: `homeassistant://hassio/ingress/${process.env.ADDON_SLUG || "self"}` }
+      };
+      const payloadString = JSON.stringify(configPayload);
+      logger.debug(`MQTT Payload for ${safeDevId}: ${payloadString}`);
+      mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+        if (err) logger.error(`MQTT Pub error ${safeDevId}: ${err.message}`);
+        else logger.info(`MQTT Discovery published for ${safeDevId}`);
+      });
     } else {
       logger.warn(`MQTT enabled but client not connected for ${safeDevId}.`);
     }
@@ -51509,22 +51576,23 @@ var serveHttp = (port) => {
   setupDiscoveryListener(initialDevEv);
   activeDiscoveryEmitter = initialDevEv;
   httpServer = import_node_http.default.createServer((req, res) => {
-    var _a2, _b2;
+    var _a2, _b2, _c2, _d;
     const requestUrl = req.url || "/";
     const method = req.method || "GET";
     const headers = req.headers;
     const clientIp = ((_a2 = headers["x-forwarded-for"]) == null ? void 0 : _a2.toString().split(",")[0].trim()) || req.socket.remoteAddress;
     logger.info(`>>> Request Received: ${method} ${requestUrl} From: ${clientIp}`);
     logger.debug(`    Headers: ${JSON.stringify(headers, null, 2)}`);
-    const ingressPath = inHass ? headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "" : "";
-    const basePath = ingressPath;
+    const ingressPathHeader = headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "";
+    const basePath = ingressPathHeader;
     const fullUrl = `http://${req.headers.host || "localhost"}${requestUrl}`;
-    logger.debug(`    Resolved Base Path: '${basePath}'`);
+    const isIngressRequest = inHass && !!basePath;
+    logger.debug(`    isIngressRequest: ${isIngressRequest}, Base Path: '${basePath}'`);
     try {
-      if (requestUrl.startsWith("/ui/") || basePath && requestUrl.startsWith(`${basePath}/ui/`)) {
+      if (isIngressRequest && requestUrl.startsWith(`${basePath}/ui/`) || !isIngressRequest && requestUrl.startsWith(`/ui/`)) {
         logger.debug(`Routing to /ui/ handler for ${requestUrl}`);
         const url = new import_node_url.URL(fullUrl);
-        const devId = url.pathname.split("/")[basePath ? 5 : 2];
+        const devId = url.pathname.split("/")[isIngressRequest ? 5 : 2];
         const session = sessions2[devId];
         if (!session) {
           res.writeHead(404);
@@ -51541,35 +51609,12 @@ var serveHttp = (port) => {
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           res.setHeader("Cache-Control", "no-store");
           res.writeHead(200);
-          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">`);
-          res.write(`<title>Camera ${cameraName(devId)}</title>`);
-          res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
-          res.write(`<style>
-                        body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:20px;background-color:#eee}
-                        body.dark-mode{background-color:#222;color:#eee}
-                        h1{margin-bottom:20px}
-                        img#camera-stream{max-width:90vw;max-height:75vh;border:1px solid #888;background-color:#333}
-                        .controls{margin-top:20px;display:flex;gap:15px}
-                        button{font-size:1.5em;padding:10px 15px;cursor:pointer;border-radius:5px;border:1px solid #ccc}
-                        body.dark-mode button{background-color:#555;color:#eee;border-color:#777}
-                    </style></head>`);
-          res.write(`<body><h1>${cameraName(devId)} (${devId})</h1>`);
-          res.write(`<img id="camera-stream" src="${basePath}/camera/${devId}" alt="Live stream for ${devId}">`);
-          res.write(`<div class="controls"><button id="rotateBtn" title="Rotate">\u{1F504}</button><button id="mirrorBtn" title="Mirror">\u2194\uFE0F</button></div>`);
-          res.write(`<script>
-                        const devId="${devId}"; const basePath="${basePath}";
-                        const rotateBtn=document.getElementById('rotateBtn'); const mirrorBtn=document.getElementById('mirrorBtn');
-                        function applyDarkMode(){document.body.classList.toggle('dark-mode',localStorage.getItem('darkMode')==='true')} applyDarkMode();
-                        rotateBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/rotate/\${devId}\`).catch(e=>console.error('Rotate failed:',e))});
-                        mirrorBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/mirror/\${devId}\`).catch(e=>console.error('Mirror failed:',e))});
-                     </script>`);
-          res.write(`</body></html>`);
+          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Camera ${cameraName(devId)}</title><link rel="shortcut icon" href="${basePath}/favicon.ico"><style>body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:20px;background-color:#eee} body.dark-mode{background-color:#222;color:#eee} h1{margin-bottom:20px} img#camera-stream{max-width:90vw;max-height:75vh;border:1px solid #888;background-color:#333} .controls{margin-top:20px;display:flex;gap:15px} button{font-size:1.5em;padding:10px 15px;cursor:pointer;border-radius:5px;border:1px solid #ccc} body.dark-mode button{background-color:#555;color:#eee;border-color:#777}</style></head><body><h1>${cameraName(devId)} (${devId})</h1><img id="camera-stream" src="${basePath}/camera/${devId}" alt="Live stream for ${devId}"><div class="controls"><button id="rotateBtn" title="Rotate">\u{1F504}</button><button id="mirrorBtn" title="Mirror">\u2194\uFE0F</button></div><script>const devId="${devId}";const basePath="${basePath}";const rotateBtn=document.getElementById('rotateBtn');const mirrorBtn=document.getElementById('mirrorBtn');function applyDarkMode(){document.body.classList.toggle('dark-mode',localStorage.getItem('darkMode')==='true')}applyDarkMode();rotateBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/rotate/\${devId}\`).catch(e=>console.error('Rotate failed:',e))});mirrorBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/mirror/\${devId}\`).catch(e=>console.error('Mirror failed:',e))});</script></body></html>`);
           res.end();
           logger.debug(`Rendered UI page for ${devId}`);
           return;
         } catch (uiRenderError) {
-          logger.error(`Error rendering UI page for ${devId}: ${uiRenderError.message}
-${uiRenderError.stack}`);
+          logger.error(`Error rendering UI page for ${devId}: ${uiRenderError.message}`);
           if (!res.writableEnded) {
             if (!res.headersSent) res.writeHead(500);
             res.end("Error rendering UI page");
@@ -51577,10 +51622,35 @@ ${uiRenderError.stack}`);
           return;
         }
       }
-      if (requestUrl.startsWith("/audio/") || basePath && requestUrl.startsWith(`${basePath}/audio/`)) {
+      if (isIngressRequest && requestUrl.startsWith(`${basePath}/audio/`) || !isIngressRequest && requestUrl.startsWith(`/audio/`)) {
+        logger.debug(`Routing to /audio/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[isIngressRequest ? 5 : 2];
+        const s = sessions2[devId];
+        if (!s) {
+          res.writeHead(404);
+          res.end("Invalid ID");
+          return;
+        }
+        if (!s.connected) {
+          res.writeHead(503);
+          res.end("Camera offline");
+          return;
+        }
+        res.setHeader("Content-Type", `text/event-stream`);
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.writeHead(200);
+        audioResponses[devId] = audioResponses[devId] || [];
+        audioResponses[devId].push(res);
+        logger.info(`Audio stream listener added for ${devId}. Count: ${audioResponses[devId].length}`);
+        req.on("close", () => {
+          var _a3;
+          logger.info(`Audio stream closed for ${devId}.`);
+          audioResponses[devId] = ((_a3 = audioResponses[devId]) == null ? void 0 : _a3.filter((r) => r !== res)) || [];
+        });
         return;
       }
-      if (requestUrl.startsWith("/favicon.ico") || basePath && requestUrl.startsWith(`${basePath}/favicon.ico`)) {
+      if (requestUrl === `${basePath}/favicon.ico` || !basePath && requestUrl === "/favicon.ico") {
         logger.debug(`Routing to /favicon.ico handler for ${requestUrl}`);
         if (faviconBuffer) {
           res.setHeader("Content-Type", "image/x-icon");
@@ -51594,15 +51664,74 @@ ${uiRenderError.stack}`);
         return;
       }
       if (requestUrl.startsWith(`${basePath}/rotate/`)) {
+        logger.debug(`Routing to /rotate/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[basePath ? 5 : 2];
+        if ((_c2 = config2.cameras) == null ? void 0 : _c2[devId]) {
+          let p = config2.cameras[devId].rotate || 0;
+          config2.cameras[devId].rotate = (p + 1) % 4;
+          logger.debug(`Rotated ${devId}`);
+          res.writeHead(204);
+          res.end();
+        } else {
+          res.writeHead(404);
+          res.end("Not Found");
+        }
         return;
       }
       if (requestUrl.startsWith(`${basePath}/mirror/`)) {
+        logger.debug(`Routing to /mirror/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[basePath ? 5 : 2];
+        if ((_d = config2.cameras) == null ? void 0 : _d[devId]) {
+          config2.cameras[devId].mirror = !config2.cameras[devId].mirror;
+          logger.debug(`Mirrored ${devId}`);
+          res.writeHead(204);
+          res.end();
+        } else {
+          res.writeHead(404);
+          res.end("Not Found");
+        }
         return;
       }
-      if (requestUrl.startsWith("/camera/") || basePath && requestUrl.startsWith(`${basePath}/camera/`)) {
+      if (isIngressRequest && requestUrl.startsWith(`${basePath}/camera/`) || !isIngressRequest && requestUrl.startsWith(`/camera/`)) {
+        logger.debug(`Routing to /camera/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[isIngressRequest ? 5 : 2];
+        const s = sessions2[devId];
+        if (!s) {
+          logger.warn(`Stream requested for unknown session: ${devId}`);
+          res.writeHead(404);
+          res.end("Camera not found");
+          return;
+        }
+        if (!s.connected) {
+          logger.warn(`Stream requested for offline session: ${devId}`);
+          res.writeHead(503);
+          res.end("Camera offline");
+          return;
+        }
+        res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.writeHead(200);
+        res.write(`\r
+--${BOUNDARY}\r
+`);
+        responses[devId] = responses[devId] || [];
+        responses[devId].push(res);
+        logger.debug(`MJPEG stream listener added for ${devId}. Count: ${responses[devId].length}`);
+        res.on("close", () => {
+          var _a3;
+          logger.debug(`MJPEG stream closed for ${devId}.`);
+          responses[devId] = ((_a3 = responses[devId]) == null ? void 0 : _a3.filter((r) => r !== res)) || [];
+        });
+        res.on("error", (err) => {
+          var _a3;
+          logger.error(`MJPEG stream error for ${devId}: ${err.message}`);
+          responses[devId] = ((_a3 = responses[devId]) == null ? void 0 : _a3.filter((r) => r !== res)) || [];
+        });
         return;
       }
-      if (requestUrl.startsWith("/discover") || basePath && requestUrl.startsWith(`${basePath}/discover`)) {
+      if (requestUrl === `${basePath}/discover` || !basePath && requestUrl === "/discover") {
         logger.info("Discovery triggered via /discover endpoint.");
         if (activeDiscoveryEmitter) {
           logger.warn("Discovery already running.");
@@ -51614,7 +51743,7 @@ ${uiRenderError.stack}`);
           setupDiscoveryListener(triggeredDevEv);
           activeDiscoveryEmitter = triggeredDevEv;
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ message: "Discovery started for 10 seconds. Refresh page afterwards to see results." }));
+          res.end(JSON.stringify({ message: "Discovery process started." }));
         }
         return;
       }
@@ -51626,87 +51755,46 @@ ${uiRenderError.stack}`);
           res.setHeader("Pragma", "no-cache");
           res.setHeader("Expires", "0");
           res.writeHead(200);
-          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">`);
-          res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
-          res.write(`<title>${inHass ? "Camera Handler" : "All Cameras"}</title>`);
-          res.write(`<style>
-                        body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;transition:background-color .3s,color .3s}
-                        body::-webkit-scrollbar{background-color:#ffffff30;width:8px;border-radius:8px}
-                        body::-webkit-scrollbar-track{background-color:#00000060;border-radius:8px}
-                        body::-webkit-scrollbar-thumb{background-color:#555;border-radius:8px}
-                        body::-webkit-scrollbar-button{display:none}
-                        body.dark-mode{background-color:#121212;color:#f4f4f4}
-                        header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:${inHass ? "#18bcf2" : "#0078d7"};position:sticky;top:0;z-index:10}
-                        header.dark-mode{background-color:${inHass ? "#18bcf2" : "#005a9e"}}
-                        header h1{margin:0;font-size:1.5em}
-                        header button{background:0 0;border:none;color:#fff;font-size:20px;cursor:pointer;padding:5px;line-height:1}
-                        header button:hover{opacity:.8}
-                        .camera-container{padding:20px;display:flex;flex-direction:column;gap:15px}
-                        .camera-container.grid-view{flex-direction:row;flex-wrap:wrap;gap:20px}
-                        .camera-info,.camera-item{background-color:#fff;border:1px solid #ccc;border-radius:8px;padding:15px;box-shadow:0 1px 3px #0000001a}
-                        .camera-info.dark-mode,.camera-item.dark-mode{background-color:#1e1e1e;border-color:#444}
-                        .camera-item{display:flex;flex-direction:row;align-items:flex-start;text-decoration:none;color:inherit;transition:box-shadow .2s ease-in-out}
-                        .camera-item:hover{box-shadow:0 4px 8px #00000026}
-                        .camera-item.dark-mode:hover{box-shadow:0 4px 8px #0000004d}
-                        .camera-item img{width:320px;height:240px;object-fit:cover;border-radius:4px;border:1px solid #ccc;display:block;background-color:#eee}
-                        .camera-item.dark-mode img{background-color:#333;border-color:#555}
-                        .camera-item .camera-details{margin-left:20px;border:none;padding:0;background:0 0;flex-grow:1}
-                        .info-table{display:flex;flex-direction:column;gap:8px}
-                        .info-table>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-                        .info-title{font-weight:700;min-width:50px}
-                        code{font-size:.9em;border-radius:4px;padding:3px 6px;background-color:#eee;color:#333;border:1px solid #ccc;word-break:break-all}
-                        .dark-mode code{background-color:#333;color:#eee;border-color:#555}
-                        .copy-this{cursor:pointer;padding:3px 8px;font-size:1em;border:1px solid #ccc;border-radius:4px;background-color:#f0f0f0;line-height:1}
-                        .dark-mode .copy-this{background-color:#444;border-color:#666;color:#eee}
-                        .badge img{vertical-align:middle;height:1.2em}
-                        .edit-friendly-name{background:0 0;border:none;color:inherit;font-size:1em;cursor:pointer;padding:0 5px;line-height:1}
-                        .edit-friendly-name:hover{color:#0078d7}
-                        .camera-container.grid-view .camera-item{flex-direction:column;max-width:350px;align-items:center}
-                        .camera-container.grid-view .camera-item img{margin:0 auto 10px}
-                        .camera-container.grid-view .camera-item .camera-details{margin-left:0;width:100%}
-                        .camera-container.grid-view .camera-item .info-table{display:none}
-                        .grid-name{display:none;text-align:center;font-weight:700;margin-top:10px}
-                        .camera-container.grid-view .grid-name{display:block}
-                        #instructions,#no-cameras{margin-bottom:10px}
-                    </style></head>`);
-          res.write(`<body><header><h1>${inHass ? "Camera Handler" : "All Cameras"}</h1><div>
-                          <button id="discoverDevices" title="Discover Devices">\u{1F4E1}</button>
-                          <button id="darkModeToggle" title="Toggle Dark Mode">\u{1F4A1}</button>
-                          ${!inHass ? '<button id="viewToggle" title="Toggle View">\u{1F5BC}\uFE0F</button>' : ""}
-                          </div></header><div class="camera-container" id="cameraContainer">`);
-          if (inHass) {
-            res.write(`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration. <button onclick="window.location.reload()" style="margin-left: 10px; cursor: pointer;">Refresh List</button></div>`);
+          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="shortcut icon" href="${basePath}/favicon.ico"><title>Camera Handler</title>`);
+          res.write(`<style>body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;transition:background-color .3s,color .3s}body::-webkit-scrollbar{background-color:#ffffff30;width:8px;border-radius:8px}body::-webkit-scrollbar-track{background-color:#00000060;border-radius:8px}body::-webkit-scrollbar-thumb{background-color:#555;border-radius:8px}body::-webkit-scrollbar-button{display:none}body.dark-mode{background-color:#121212;color:#f4f4f4}header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:#18bcf2;position:sticky;top:0;z-index:10}header.standalone-mode{background-color:#0078d7}header.dark-mode.standalone-mode{background-color:#005a9e}header.dark-mode.ha-mode{background-color:#18bcf2}header h1{margin:0;font-size:1.5em}header button{background:0 0;border:none;color:#fff;font-size:20px;cursor:pointer;padding:5px;line-height:1}header button:hover{opacity:.8}.camera-container{padding:20px;display:flex;flex-direction:column;gap:15px}.camera-container.grid-view{flex-direction:row;flex-wrap:wrap;gap:20px}.camera-info,.camera-item{background-color:#fff;border:1px solid #ccc;border-radius:8px;padding:15px;box-shadow:0 1px 3px #0000001a}.camera-info.dark-mode,.camera-item.dark-mode{background-color:#1e1e1e;border-color:#444}.camera-item{display:flex;flex-direction:row;align-items:flex-start;text-decoration:none;color:inherit;transition:box-shadow .2s ease-in-out}.camera-item:hover{box-shadow:0 4px 8px #00000026}.camera-item.dark-mode:hover{box-shadow:0 4px 8px #0000004d}.camera-item img{width:320px;height:240px;object-fit:cover;border-radius:4px;border:1px solid #ccc;display:block;background-color:#eee}.camera-item.dark-mode img{background-color:#333;border-color:#555}.camera-item .camera-details{margin-left:20px;border:none;padding:0;background:0 0;flex-grow:1}.info-table{display:flex;flex-direction:column;gap:8px}.info-table>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.info-title{font-weight:700;min-width:50px}code{font-size:.9em;border-radius:4px;padding:3px 6px;background-color:#eee;color:#333;border:1px solid #ccc;word-break:break-all}.dark-mode code{background-color:#333;color:#eee;border-color:#555}.copy-this{cursor:pointer;padding:3px 8px;font-size:1em;border:1px solid #ccc;border-radius:4px;background-color:#f0f0f0;line-height:1}.dark-mode .copy-this{background-color:#444;border-color:#666;color:#eee}.badge img{vertical-align:middle;height:1.2em}.edit-friendly-name{background:0 0;border:none;color:inherit;font-size:1em;cursor:pointer;padding:0 5px;line-height:1}.edit-friendly-name:hover{color:#0078d7}.camera-container.grid-view .camera-item{flex-direction:column;max-width:350px;align-items:center}.camera-container.grid-view .camera-item img{margin:0 auto 10px}.camera-container.grid-view .camera-item .camera-details{margin-left:0;width:100%}.camera-container.grid-view .camera-item .info-table{display:none}.grid-name{display:none;text-align:center;font-weight:700;margin-top:10px}.camera-container.grid-view .grid-name{display:block}#instructions,#no-cameras{margin-bottom:10px}.hidden{display:none!important}.countdown-span{margin-left:5px;font-size:.9em;color:#666;display:none}.dark-mode .countdown-span{color:#aaa}</style></head>`);
+          const currentViewMode = isIngressRequest ? "ha" : "standalone";
+          res.write(`<body class=""><header class="${currentViewMode === "standalone" ? "standalone-mode" : ""} ${currentViewMode === "ha" ? "ha-mode" : ""}"><h1 id="pageTitle">${currentViewMode === "ha" ? "Camera Handler (HA View)" : "All Cameras (Standalone View)"}</h1><div><button id="discoverDevices" title="Discover Devices">\u{1F4E1}</button><span id="discoverCountdown" class="countdown-span"></span><button id="darkModeToggle" title="Toggle Dark Mode">\u{1F4A1}</button><button id="gridListToggle" title="Toggle Grid/List View" class="${currentViewMode === "standalone" ? "" : "hidden"}">\u{1F5BC}\uFE0F</button></div></header><div class="camera-container" id="cameraContainer">`);
+          if (currentViewMode === "ha") {
+            res.write(`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above... <button onclick="window.location.reload()">Refresh List</button></div>`);
             if (Object.keys(sessions2).length === 0) {
-              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
+              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet.</div>`);
             } else {
               Object.keys(sessions2).forEach((id) => {
                 const session = sessions2[id];
                 const urlToCopy = `http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/${id}`;
-                res.write(`<div class="camera-info" data-session-id="${id}"><div class="info-table"><div><span class="info-title">${cameraName(id)} (${id})</span><code>${urlToCopy}</code><button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left: auto; font-size: 0.9em;">(IP: ${(session == null ? void 0 : session.dst_ip) || "N/A"})</span></div></div></div>`);
+                res.write(`<div class="camera-info" data-session-id="${id}"><div class="info-table"><div><span class="info-title">${cameraName(id)} (${id})</span><code>${urlToCopy}</code><button class="copy-this" title="Copy URL" data-content="${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left:auto;">(IP: ${(session == null ? void 0 : session.dst_ip) || "N/A"})</span></div></div></div>`);
               });
             }
           } else {
             if (Object.keys(sessions2).length === 0) {
-              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
+              res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet.</div>`);
             } else {
               Object.keys(sessions2).forEach((id) => {
                 const session = sessions2[id];
                 const currentFriendlyName = cameraName(id);
-                res.write(`<a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="${id}"><img src="${basePath}/camera/${id}" alt="Camera ${currentFriendlyName}" onerror="this.style.display='none'; this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> ${id}</div><div><span class="info-title">Name:</span> ${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${currentFriendlyName}</span><button class="edit-friendly-name" data-id="${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> ${(session == null ? void 0 : session.dst_ip) || "N/A"}</div></div><div class="grid-name">${currentFriendlyName}</div></div></a>`);
+                res.write(`<a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="${id}"><img src="${basePath}/camera/${id}" alt="Camera ${currentFriendlyName}" onerror="this.style.display='none';this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> ${id}</div><div><span class="info-title">Name:</span> ${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${currentFriendlyName}</span><button class="edit-friendly-name" data-id="${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> ${(session == null ? void 0 : session.dst_ip) || "N/A"}</div></div><div class="grid-name">${currentFriendlyName}</div></div></a>`);
               });
             }
           }
           res.write(`</div>`);
           res.write(`<script>
-                        document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{console.log('Copied: '+t);const e=button.textContent;button.textContent='\u2705',setTimeout(()=>{button.textContent=e},1500)}).catch(e=>{console.error('Copy failed: ',e)})})});
-                        const basePath="${basePath}";const cameraContainer=document.getElementById('cameraContainer');const darkModeToggle=document.getElementById('darkModeToggle');
-                        function applyDarkMode(e){document.body.classList.toggle('dark-mode',e),document.querySelector('header')?.classList.toggle('dark-mode',e),document.querySelectorAll('.camera-info, .camera-item').forEach(t=>t.classList.toggle('dark-mode',e))}
-                        localStorage.getItem('darkMode')==='true'&&applyDarkMode(!0),darkModeToggle?.addEventListener('click',()=>{const e=document.body.classList.toggle('dark-mode');localStorage.setItem('darkMode',e),applyDarkMode(e)});
-                        document.getElementById('discoverDevices')?.addEventListener('click',()=>{fetch(\`\${basePath}/discover\`).then(e=>e.ok?e.json():Promise.reject(new Error(\`HTTP \${e.status}\`))).then(e=>{alert(e.message||'Discovery started. Refresh page after 10s to see results.')}).catch(e=>{console.error('Error triggering discovery:',e),alert(\`Failed to start discovery: \${e.message}\`)})});
-                        const viewToggle=document.getElementById('viewToggle');viewToggle&&cameraContainer&&viewToggle.addEventListener('click',()=>cameraContainer.classList.toggle('grid-view'));
-                        const inHass=${inHass};if(!inHass){const configCameras=${JSON.stringify(config2.cameras || {})};function cameraName(e){return configCameras[e]?.alias||e}
-                        document.querySelectorAll('.camera-item').forEach(item=>{const id=item.dataset.id;if(!id)return;const friendlyName=localStorage.getItem(\`friendlyName_\${id}\`)||cameraName(id);const nameSpan=document.getElementById(\`friendlyName_\${id}\`);nameSpan&&(nameSpan.innerText=friendlyName);const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=friendlyName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(friendlyName)}\`)});
-                        document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName),nameSpan&&(nameSpan.innerText=newName);const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=newName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`);const nameDiv=item.querySelector('.info-table > div:nth-child(2)');nameDiv&&(nameDiv.childNodes[1].textContent=newName);const img=item.querySelector('img');img&&(img.alt=\`Camera \${newName}\`)}})})};
+                        const inHass=${inHass}; const basePath="${basePath}"; const isStandalone=${currentViewMode === "standalone"};
+                        const cameraContainer=document.getElementById('cameraContainer'); const darkModeToggle=document.getElementById('darkModeToggle');
+                        const discoverBtn=document.getElementById('discoverDevices'); const gridListToggleBtn=document.getElementById('gridListToggle');
+                        const discoverCountdownSpan=document.getElementById('discoverCountdown'); let discoveryTimerId=null;
+                        const configCameras=${JSON.stringify(config2.cameras || {})}; function cameraName(id){return configCameras[id]?.alias||id}
+                        function applyDarkModeClasses(isDark){document.body.classList.toggle('dark-mode',isDark);document.querySelector('header')?.classList.toggle('dark-mode',isDark);document.querySelectorAll('.camera-info,.camera-item').forEach(el=>el.classList.toggle('dark-mode',isDark))}
+                        function addCopyListeners(){document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{const e=button.textContent;button.textContent='\u2705';setTimeout(()=>{button.textContent=e},1500)}).catch(e=>console.error('Copy failed:',e))})})}
+                        function addFriendlyNameEditListeners(){document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName);if(nameSpan)nameSpan.innerText=newName;const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');if(gridNameDiv)gridNameDiv.textContent=newName;const link=item.closest('a');if(link)link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`;const nameDiv=item.querySelector('.info-table > div:nth-child(2)');if(nameDiv&&nameDiv.childNodes.length>1)nameDiv.childNodes[1].textContent=newName;const img=item.querySelector('img');if(img)img.alt=\`Camera \${newName}\`}})})})}
+                        const isDarkMode=localStorage.getItem('darkMode')==='true'; applyDarkModeClasses(isDarkMode); addCopyListeners(); if(isStandalone){addFriendlyNameEditListeners();}
+                        darkModeToggle?.addEventListener('click',()=>{const newDarkState=document.body.classList.toggle('dark-mode');localStorage.setItem('darkMode',newDarkState);applyDarkModeClasses(newDarkState)});
+                        discoverBtn?.addEventListener('click',()=>{if(discoveryTimerId)return;discoverBtn.disabled=!0;discoverCountdownSpan&&(discoverCountdownSpan.textContent='Starting...');discoverCountdownSpan&&(discoverCountdownSpan.style.display='inline');fetch(\`\${basePath}/discover\`).then(e=>e.ok?e.json():e.json().then(t=>Promise.reject(new Error(t.message||\`HTTP \${e.status}\`))).catch(()=>Promise.reject(new Error(\`HTTP \${e.status}\`)))).then(data=>{console.log('Discovery initiated:',data.message);let count=10;discoverCountdownSpan&&(discoverCountdownSpan.textContent=\`\${count}s\`);discoveryTimerId=setInterval(()=>{count--;discoverCountdownSpan&&(discoverCountdownSpan.textContent=\`\${count}s\`);if(count<=0){clearInterval(discoveryTimerId);discoveryTimerId=null;discoverCountdownSpan&&(discoverCountdownSpan.style.display='none');discoverBtn.disabled=!1;console.log('Discovery finished, reloading page...');window.location.reload()}},1e3)}).catch(err=>{console.error('Error triggering discovery:',err);alert(\`Failed to start discovery: \${err.message}\`);discoverCountdownSpan&&(discoverCountdownSpan.style.display='none');discoverBtn.disabled=!1;if(discoveryTimerId)clearInterval(discoveryTimerId);discoveryTimerId=null})});
+                        gridListToggleBtn?.addEventListener('click',()=>{cameraContainer?.classList.toggle('grid-view')});
                       </script>`);
           res.write(`</body></html>`);
           res.end();
@@ -51717,7 +51805,7 @@ ${uiRenderError.stack}`);
 ${renderError.stack}`);
           if (!res.writableEnded) {
             if (!res.headersSent) res.writeHead(500);
-            res.end("Internal Server Error during page render");
+            res.end("Internal Server Error");
           }
           return;
         }
