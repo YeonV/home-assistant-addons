@@ -41,6 +41,7 @@ var __privateWrapper = (obj, member, setter, getter) => ({
     return __privateGet(obj, member, getter);
   }
 });
+var __toBinaryNode = (base64) => new Uint8Array(Buffer.from(base64, "base64"));
 
 // node_modules/y18n/build/index.cjs
 var require_build = __commonJS({
@@ -51204,6 +51205,9 @@ ${err.stack}`);
   });
   return ee;
 };
+var stopDiscovery = (ee) => {
+  ee.emit("stop");
+};
 
 // capture_single.ts
 var sessions = {};
@@ -51256,6 +51260,14 @@ var createExifOrientation = (orientation) => {
   const exifHeader = Buffer.concat([Buffer.from("FFE1", "hex"), segmentLength]);
   return Buffer.concat([exifHeader, exifData]);
 };
+var addExifToJpeg = (jpegData, exifSegment) => {
+  if (jpegData.includes(Buffer.from("FFE1", "hex"))) {
+    throw new Error("JPEG already contains EXIF segment");
+  }
+  const soiEnd = 2;
+  const modifiedJpeg = Buffer.concat([jpegData.subarray(0, soiEnd), exifSegment, jpegData.subarray(soiEnd)]);
+  return modifiedJpeg;
+};
 
 // mqtt.ts
 var import_mqtt = __toESM(require_build5(), 1);
@@ -51302,11 +51314,70 @@ function initializeMqtt() {
   });
   return client;
 }
+function getMqttClient() {
+  return client;
+}
+function closeMqtt() {
+  if (client) {
+    console.log("DEBUG: Closing central MQTT client.");
+    client.end();
+    client = null;
+  }
+}
+
+// notifications.ts
+async function sendCameraDiscoveredNotification(cameraId, ipAddress, port) {
+  const token = process.env.SUPERVISOR_TOKEN;
+  if (!token) {
+    logger.warning("SUPERVISOR_TOKEN not found. Cannot send persistent notification.");
+    return;
+  }
+  const apiUrl = "http://supervisor/core/api/services/persistent_notification/create";
+  const notificationId = `camera_handler_discovered_${cameraId}`;
+  const title = "New Camera Found";
+  const message = `Discovered camera '${cameraId}' at IP address ${ipAddress}.
+
+To add it manually:
+1. Copy this URL to your clipboard:
+
+   \`http://localhost:${port}/camera/${cameraId}\`
+
+2. add it <a href="/_my_redirect/config_flow_start?domain=mjpeg">here</a>`;
+  const body = JSON.stringify({
+    notification_id: notificationId,
+    title,
+    message
+  });
+  const headers = {
+    "Authorization": `Bearer ${token}`,
+    "Content-Type": "application/json"
+  };
+  logger.debug(`Sending notification for ${cameraId} to ${apiUrl}`);
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers,
+      body
+    });
+    if (!response.ok) {
+      let errorBody = "";
+      try {
+        errorBody = await response.text();
+      } catch (e) {
+      }
+      throw new Error(`API request failed with status ${response.status}: ${response.statusText}. Body: ${errorBody}`);
+    }
+    logger.info(`Successfully sent persistent notification for camera ${cameraId}. Status: ${response.status}`);
+  } catch (error) {
+    logger.error(`Error sending persistent notification for ${cameraId}: ${error.message}`);
+    throw error;
+  }
+}
 
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.52",
+  version: "0.0.53",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51331,321 +51402,8 @@ var package_default = {
   }
 };
 
-// asd.html
-var asd_default = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Camera: \${name}</title>
-    <style>
-      /* General Styles */
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f4f4f4;
-        color: #333;
-        transition: background-color 0.3s, color 0.3s;
-      }
-      body.dark-mode {
-        background-color: #121212;
-        color: #f4f4f4;
-      }
-      header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 20px;
-        background-color: #0078d7;
-        color: white;
-      }
-      /* Back Button Styles */
-      header #backButton {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-        margin-right: 10px;
-        text-decoration: none;
-      }
-
-      /* Friendly Name Edit Button */
-      .edit-friendly-name {
-        margin-top: 10px;
-        padding: 5px 10px;
-        font-size: 14px;
-        cursor: pointer;
-        background-color: #0078d7;
-        color: white;
-        border: none;
-        border-radius: 4px;
-      }
-      .edit-friendly-name:hover {
-        background-color: #005a9e;
-      }
-      header.dark-mode {
-        background-color: #005a9e;
-      }
-      header h1 {
-        margin: 0;
-      }
-      header button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-      }
-      header button:hover {
-        text-decoration: underline;
-      }
-
-      /* Camera View Styles */
-      .camera-view {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-      }
-      .camera-view img {
-        max-width: 100%;
-        max-height: 100%;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        object-fit: contain;
-      }
-      .camera-view img.fullscreen {
-        width: 100vw;
-        height: 100vh;
-        object-fit: contain;
-        border: none;
-        border-radius: 0;
-      }
-      .fullscreen-container {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 10px;
-      }
-      .fullscreen-container.hidden {
-        display: none;
-      }
-      .fullscreen-button {
-        padding: 5px 10px;
-        font-size: 14px;
-        cursor: pointer;
-        background-color: #0078d7;
-        color: white;
-        border: none;
-        border-radius: 4px;
-      }
-      .fullscreen-button:hover {
-        background-color: #005a9e;
-      }
-
-      /* Button Styles */
-      .fullscreen-container button {
-        padding: 10px 15px;
-        font-size: 14px;
-        cursor: pointer;
-        background-color: #0078d7;
-        color: white;
-        border: none;
-        border-radius: 4px;
-      }
-      .fullscreen-container button:hover {
-        background-color: #005a9e;
-      }
-      .fullscreen-container button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
-      }
-      #darkModeToggle {
-        filter: brightness(100);
-        text-decoration: none;
-      }
-    </style>
-  </head>
-  <body>
-    <header>
-      <button id="backButton">\u2190</button>
-      <h1 id="cameraTitle">Camera: \${name}</h1>
-      <button id="darkModeToggle">&#128261;</button>
-    </header>
-    <div class="camera-view" id="cameraView">
-      <img src="/camera/\${id}" alt="Camera \${name}" id="cameraStream" />
-      <div class="fullscreen-container" id="buttonBar">
-        <button onclick="toggle_audio()" id="audio" disabled>Audio: disabled</button>
-        <button onclick="fetch('/rotate/\${id}')">&#8634;</button>
-        <button onclick="fetch('/mirror/\${id}')">&#8596;</button>
-        <button class="fullscreen-button" id="fullscreenButton">&#x26F6;</button>
-      </div>
-    </div>
-    <script>
-      // Parse URL Parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const friendlyName = urlParams.get('friendlyName') && urlParams.get('friendlyName') !== 'Not Set' ? urlParams.get('friendlyName') : '\${name}';
-
-      // Set the Friendly Name in the Header
-      document.getElementById('cameraTitle').innerText =  urlParams.get('friendlyName') && urlParams.get('friendlyName') !== 'Not Set' && urlParams.get('friendlyName') !== '\${name}'  ? friendlyName : \`Camera: \${friendlyName}\`;
-
-      // Load Dark Mode Setting
-      if (localStorage.getItem('darkMode') === 'true') {
-      	document.body.classList.add('dark-mode');
-      	document.querySelector('header').classList.add('dark-mode');
-      }
-
-      // Back Button
-      const backButton = document.getElementById('backButton');
-      backButton.addEventListener('click', () => {
-      	window.history.back();
-      });
-
-      // Dark Mode Toggle
-      const darkModeToggle = document.getElementById('darkModeToggle');
-      darkModeToggle.addEventListener('click', () => {
-      	const isDarkMode = document.body.classList.toggle('dark-mode');
-      	document.querySelector('header').classList.toggle('dark-mode');
-      	localStorage.setItem('darkMode', isDarkMode); // Save setting
-      });
-
-         // Fullscreen Functionality
-         const cameraView = document.getElementById('cameraView');
-         const cameraStream = document.getElementById('cameraStream');
-         const fullscreenButton = document.getElementById('fullscreenButton');
-         const buttonBar = document.getElementById('buttonBar');
-
-         // Toggle fullscreen on button click
-         fullscreenButton.addEventListener('click', () => {
-           if (!document.fullscreenElement) {
-             cameraView.requestFullscreen().catch(err => {
-               console.error(\`Error attempting to enable fullscreen mode: \${err.message}\`);
-             });
-           } else {
-             document.exitFullscreen();
-           }
-         });
-
-         // Toggle fullscreen on double-click
-         cameraStream.addEventListener('dblclick', () => {
-           if (!document.fullscreenElement) {
-             cameraView.requestFullscreen().catch(err => {
-               console.error(\`Error attempting to enable fullscreen mode: \${err.message}\`);
-             });
-           } else {
-             document.exitFullscreen();
-           }
-         });
-
-         // Add/remove fullscreen class and hide button bar on fullscreen change
-         document.addEventListener('fullscreenchange', () => {
-           if (document.fullscreenElement) {
-             cameraStream.classList.add('fullscreen');
-             buttonBar.classList.add('hidden');
-           } else {
-             cameraStream.classList.remove('fullscreen');
-             buttonBar.classList.remove('hidden');
-           }
-         });
-
-         // Audio Button Logic
-         const alaw_to_s16_table = [
-           -5504, -5248, -6016, -5760, -4480, -4224, -4992, -4736, -7552, -7296, -8064, -7808, -6528, -6272, -7040, -6784, -2752,
-           -2624, -3008, -2880, -2240, -2112, -2496, -2368, -3776, -3648, -4032, -3904, -3264, -3136, -3520, -3392, -22016,
-           -20992, -24064, -23040, -17920, -16896, -19968, -18944, -30208, -29184, -32256, -31232, -26112, -25088, -28160,
-           -27136, -11008, -10496, -12032, -11520, -8960, -8448, -9984, -9472, -15104, -14592, -16128, -15616, -13056, -12544,
-           -14080, -13568, -344, -328, -376, -360, -280, -264, -312, -296, -472, -456, -504, -488, -408, -392, -440, -424, -88,
-           -72, -120, -104, -24, -8, -56, -40, -216, -200, -248, -232, -152, -136, -184, -168, -1376, -1312, -1504, -1440, -1120,
-           -1056, -1248, -1184, -1888, -1824, -2016, -1952, -1632, -1568, -1760, -1696, -688, -656, -752, -720, -560, -528, -624,
-           -592, -944, -912, -1008, -976, -816, -784, -880, -848, 5504, 5248, 6016, 5760, 4480, 4224, 4992, 4736, 7552, 7296,
-        8064, 7808, 6528, 6272, 7040, 6784, 2752, 2624, 3008, 2880, 2240, 2112, 2496, 2368, 3776, 3648, 4032, 3904, 3264,
-        3136, 3520, 3392, 22016, 20992, 24064, 23040, 17920, 16896, 19968, 18944, 30208, 29184, 32256, 31232, 26112, 25088,
-        28160, 27136, 11008, 10496, 12032, 11520, 8960, 8448, 9984, 9472, 15104, 14592, 16128, 15616, 13056, 12544, 14080,
-        13568, 344, 328, 376, 360, 280, 264, 312, 296, 472, 456, 504, 488, 408, 392, 440, 424, 88, 72, 120, 104, 24, 8, 56,
-        40, 216, 200, 248, 232, 152, 136, 184, 168, 1376, 1312, 1504, 1440, 1120, 1056, 1248, 1184, 1888, 1824, 2016, 1952,
-        1632, 1568, 1760, 1696, 688, 656, 752, 720, 560, 528, 624, 592, 944, 912, 1008, 976, 816, 784, 880, 848,
-         ];
-
-      const alaw_to_s16 = (a_val) => {
-        return alaw_to_s16_table[a_val];
-      };
-
-      var audio_context;
-      const audio_button = document.getElementById('audio');
-      audio_button.disabled = !\${audio};
-      update_audio_button();
-
-      function setup_audio() {
-      	audio_context = new AudioContext();
-      	const gain_node = audio_context.createGain(); // Declare gain node
-      	const channels =1;
-      	const sample_rate = 8000;
-      	const audioBuffer = audio_context.createBuffer(channels, 960, sample_rate); // 960??
-      	//const audioBuffer = audio_context.createBuffer(channels, decoded.length, sample_rate);
-
-      	audio_context.onstatechange = () => {
-      		console.log("Audio state is now ", audio_context.state);
-      		update_audio_button(audio_context.state == "running");
-      	};
-
-      	gain_node.connect(audio_context.destination); // Connect gain node to speakers
-      	audio_context.resume();
-
-      	const evtSource = new EventSource("/audio/\${id}");
-      	evtSource.onopen = (e) => {
-      		console.log("evtsource open");
-      	}
-      	evtSource.onerror = (e) => {
-      		console.log("evtsource error", e);
-      	}
-      	let endsAt = 0;
-      	let startAt = 0;
-      	evtSource.onmessage = (e) => {
-      		const nowBuffering = audioBuffer.getChannelData(0);
-      		const u8 = Uint8Array.from(atob(e.data), c => c.charCodeAt(0));
-      		new Int16Array(u8).map(alaw_to_s16).forEach((el, i) => nowBuffering[i] = el / 0x8000 );
-
-      		const source_node = audio_context.createBufferSource();
-      		source_node.buffer = audioBuffer;
-      		source_node.connect(gain_node);
-      		const now = Date.now();
-      		if(now > endsAt) { // lost packets
-      			startAt = 0;
-      		} else {
-      			startAt += audioBuffer.duration;
-      		}
-      		source_node.start(startAt);
-      		endsAt = now + audioBuffer.duration * 1000;
-      	};
-      }
-
-      function update_audio_button(on) {
-      	if (\${audio}) {
-      		audio_button.innerText = (on ? "\\u{1F508}" : "\\u{1F507}");
-      	}
-      }
-
-      function toggle_audio() {
-      	if (audio_context == undefined) {
-      		setup_audio();
-      		return;
-      	}
-      	if (audio_context.state == "running") {
-      		audio_context.suspend();
-      		return;
-      	}
-      	if (audio_context.state == "suspended") {
-      		audio_context.resume();
-      		return;
-      	}
-      	console.log("Unknown audio stream status");
-      }
-    </script>
-  </body>
-</html>
-`;
+// cam.ico.gz
+var cam_ico_default = __toBinaryNode("H4sICOJhLWYAA2NhbS5pY28A7ZlPSxtBGMbfjcGUIDUQsUdzqUgP4gco5O7FL+DBHoQe8wGECO1HKIVe20vbS4v3UvALSBA8eVBEKRE0BSn9F6fP67wDw3Z2XZPZsCvzhCcvO5k/v5mdDbvvEkX4rKwQvlv0/jHRPBEtwSiiDdLlQUFB915b8Df4GlaezX2ew694IKXUSI6iaBHND+Hf8DvhnoNPcmBO8gU4Ht2VHXrtWFvW6QTZjQf1er2Skfsp3E/o52Xs+Ap+Aa979pbsH3usD2ncrVaL2T/dsg52n1eVSqUx6t7MsI6sM2u8Hyl112Qt47w/Y8f2ftrOi93i2rTHr1ar07Hrs4HyXQc3c76Rc5l0Ltbz5gffnD0mjp9Yc3sO/3JwHaPektQpFD+8zP9FiPsOnj9wN3b+isb/Fv7rYNlD3XnH/isav+v6fJZy/RSZ/wv+/2bS2heU/zu8mqV9Afk/93q9zO0LyL98l/aBP/AH/sAf+AN/4C8+v60y8YvacBf+KLE97jwmdf8mrJfwkPSz81CO25752V7vn0UH9H+u61rKffMbe3l+gTjHGM+zGHP5Yk78pv+xnh+Ff5hQZ+iZ3/vzO9SUve6qw+VNj/y55E+gnYT9v+Pz+vWQv3LmD0U8h76c374cj8wu/frOH6bmb2UvNcfZM7E18Z2/LXv+nFXm9xessr8/MirT+zvu8ysFBQWVVupGt8cjopoa4AaDKFJHN5HUtvRB/KMa8E3GLGJH4kZDR+pIHOg4JbEmcUFidwLx4ayOMzU9LkfmeDCluTiSiR39O8+D2/G8agt6nmbeZh3Muph1yrqu/wDiFlMnviUAAA==");
 
 // http_server.ts
 buildLogger(process.env.ADDON_LOG_LEVEL || "info", void 0);
@@ -51661,15 +51419,167 @@ if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPor
 logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
 var inHass = !!process.env.SUPERVISOR_TOKEN;
 logger.info(`Running inside Home Assistant environment: ${inHass}`);
+var BOUNDARY = "cam-handler-boundary";
+var responses = {};
+var audioResponses = {};
 var sessions2 = {};
 var activeDiscoveryEmitter = null;
 var httpServer = null;
+var faviconBuffer = null;
+try {
+  if (typeof cam_ico_default === "string") {
+    faviconBuffer = Buffer.from(cam_ico_default, "base64");
+  } else if (cam_ico_default instanceof Buffer || cam_ico_default instanceof Uint8Array) {
+    faviconBuffer = Buffer.from(cam_ico_default);
+  } else {
+    throw new Error("Imported favicon data not recognized.");
+  }
+  logger.debug(`Favicon processed from import (${faviconBuffer.length} bytes).`);
+} catch (favError) {
+  logger.error(`Failed to process imported favicon: ${favError.message}`);
+  faviconBuffer = null;
+}
+var oMap = [1, 8, 3, 6];
+var oMapMirror = [2, 7, 4, 5];
 var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => ({ [cur]: createExifOrientation(cur), ...acc }), {});
 var cameraName = (id) => {
   var _a2, _b2;
   return ((_b2 = (_a2 = config2.cameras) == null ? void 0 : _a2[id]) == null ? void 0 : _b2.alias) || id;
 };
+var handleDeviceDiscovered = (rinfo, dev) => {
+  var _a2, _b2, _c2;
+  const safeDevId = dev.devId.replace(/[\s+#\/]/g, "_");
+  if (sessions2[safeDevId]) {
+    logger.debug(`Camera ${safeDevId} already in session.`);
+    return;
+  }
+  logger.info(`Handling newly discovered camera: ${safeDevId} at ${rinfo.address}`);
+  responses[safeDevId] = [];
+  audioResponses[safeDevId] = [];
+  const s = makeSession(Handlers, dev, rinfo, startSessionCallback, 5e3);
+  sessions2[safeDevId] = s;
+  if (!((_a2 = config2.cameras) == null ? void 0 : _a2[safeDevId])) {
+    config2.cameras[safeDevId] = { rotate: 0, mirror: false, audio: true };
+  } else {
+    config2.cameras[safeDevId] = { rotate: 0, mirror: false, audio: true, ...config2.cameras[safeDevId] };
+  }
+  s.eventEmitter.on("frame", () => {
+    var _a3, _b3, _c3;
+    if (!((_a3 = s == null ? void 0 : s.curImage) == null ? void 0 : _a3.length)) return;
+    try {
+      const camConfig = ((_b3 = config2.cameras) == null ? void 0 : _b3[safeDevId]) || { rotate: 0, mirror: false };
+      let orientation = camConfig.rotate || 0;
+      orientation = camConfig.mirror ? oMapMirror[orientation] : oMap[orientation];
+      const exifSegment = orientations[orientation];
+      const jpegHeader = addExifToJpeg(s.curImage[0], exifSegment);
+      const assembled = Buffer.concat([jpegHeader, ...s.curImage.slice(1)]);
+      const header = Buffer.from(`\r
+--${BOUNDARY}\r
+Content-Type: image/jpeg\r
+Content-Length: ${assembled.length}\r
+\r
+`);
+      (_c3 = responses[safeDevId]) == null ? void 0 : _c3.forEach((res, index) => {
+        if (!res.writable || res.destroyed) return;
+        try {
+          res.write(header);
+          res.write(assembled);
+        } catch (writeError) {
+          logger.error(`FRAME ${safeDevId}: ERROR writing: ${writeError.message}. Removing listener ${index}.`);
+          if (responses[safeDevId]) responses[safeDevId] = responses[safeDevId].filter((r) => r !== res);
+          if (!res.destroyed) res.destroy(writeError);
+        }
+      });
+    } catch (frameError) {
+      logger.error(`Error processing frame for ${safeDevId}: ${frameError.message}`);
+    }
+  });
+  s.eventEmitter.on("disconnect", () => {
+    logger.info(`Camera ${safeDevId} session disconnected.`);
+    delete sessions2[safeDevId];
+    delete responses[safeDevId];
+    delete audioResponses[safeDevId];
+  });
+  if ((_c2 = (_b2 = config2.cameras) == null ? void 0 : _b2[safeDevId]) == null ? void 0 : _c2.audio) {
+    s.eventEmitter.on("audio", ({ data }) => {
+      var _a3;
+      const b64encoded = Buffer.from(data).toString("base64");
+      (_a3 = audioResponses[safeDevId]) == null ? void 0 : _a3.forEach((res) => {
+        if (!res.writable || res.destroyed) return;
+        try {
+          res.write(`data: ${b64encoded}
+
+`);
+        } catch (e) {
+          logger.warn(`Error writing audio: ${e.message}`);
+        }
+      });
+    });
+  }
+  if (inHass && addonOptions.mqttEnabled) {
+    const mqttClient = getMqttClient();
+    if (mqttClient == null ? void 0 : mqttClient.connected) {
+      logger.info(`MQTT Discovery: Attempting for new session ${safeDevId}`);
+      const deviceId = `yz-${safeDevId}`;
+      const configTopic = `homeassistant/camera/${deviceId}/config`;
+      const baseUrl = `http://localhost:${addonOptions.uiPort}/camera/${dev.devId}`;
+      const configPayload = {
+        name: `Camera ${dev.devId}`,
+        unique_id: deviceId,
+        topic: `camera/${deviceId}/state`,
+        mjpeg_url: baseUrl,
+        still_image_url: baseUrl,
+        device: {
+          identifiers: ["camera-handler-addon"],
+          name: "X9/A5 Camera Handler",
+          manufacturer: "YeonV Addons",
+          model: "X9/A5 Handler",
+          sw_version: package_default.version || "unknown",
+          configuration_url: `homeassistant://hassio/ingress/${process.env.ADDON_SLUG || "self"}`
+        }
+      };
+      const payloadString = JSON.stringify(configPayload);
+      logger.debug(`MQTT Payload for ${safeDevId}: ${payloadString}`);
+      mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
+        if (err) logger.error(`MQTT Pub error ${safeDevId}: ${err.message}`);
+        else logger.info(`MQTT Discovery published for ${safeDevId}`);
+      });
+    } else {
+      logger.warn(`MQTT enabled but client not connected for ${safeDevId}.`);
+    }
+  } else if (inHass) {
+    logger.debug(`MQTT disabled, skipping for ${safeDevId}.`);
+  }
+};
+var startSessionCallback = (s) => {
+  try {
+    startVideoStream(s);
+    logger.info(`Camera ${s.devName} session handshake complete, requested video stream.`);
+  } catch (startError) {
+    logger.error(`Error starting video stream for ${s.devName}: ${startError.message}`);
+    s.close();
+  }
+};
 var setupDiscoveryListener = (emitter) => {
+  logger.debug("Attaching discovery listeners...");
+  const discoveredThisRun = {};
+  emitter.on("discover", (rinfo, dev) => {
+    const safeDevId = dev.devId.replace(/[\s+#\/]/g, "_");
+    if (!discoveredThisRun[safeDevId] && inHass) {
+      logger.info(`Attempting persistent notification for newly found ${safeDevId}`);
+      sendCameraDiscoveredNotification(dev.devId, rinfo.address, addonOptions.uiPort).catch((err) => logger.error(`Notify error: ${err.message}`));
+      discoveredThisRun[safeDevId] = true;
+    }
+    handleDeviceDiscovered(rinfo, dev);
+  });
+  emitter.on("close", () => {
+    logger.info("A discovery process finished.");
+    if (emitter === activeDiscoveryEmitter) activeDiscoveryEmitter = null;
+  });
+  emitter.on("error", (err) => {
+    logger.error(`Discovery emitter error: ${err.message}`);
+    if (emitter === activeDiscoveryEmitter) activeDiscoveryEmitter = null;
+  });
 };
 var serveHttp = (port) => {
   if (inHass && addonOptions.mqttEnabled) {
@@ -51680,11 +51590,11 @@ var serveHttp = (port) => {
   setupDiscoveryListener(initialDevEv);
   activeDiscoveryEmitter = initialDevEv;
   httpServer = import_node_http.default.createServer((req, res) => {
-    var _a2;
+    var _a2, _b2;
     const requestUrl = req.url || "/";
     const method = req.method || "GET";
     const headers = req.headers;
-    const clientIp = headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const clientIp = ((_a2 = headers["x-forwarded-for"]) == null ? void 0 : _a2.toString().split(",")[0].trim()) || req.socket.remoteAddress;
     logger.info(`>>> Request Received: ${method} ${requestUrl} From: ${clientIp}`);
     logger.debug(`    Headers: ${JSON.stringify(headers, null, 2)}`);
     const ingressPath = inHass ? headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "" : "";
@@ -51707,22 +51617,67 @@ var serveHttp = (port) => {
           res.end("Camera offline");
           return;
         }
-        const cameraData = (_a2 = config2.cameras) == null ? void 0 : _a2[devId];
-        const ui2 = asd_default.toString().replace(/\${id}/g, devId).replace(/\${name}/g, cameraName(devId)).replace(/\${audio}/g, (cameraData == null ? void 0 : cameraData.audio) ? "true" : "false").replace(/"\/camera\/\$\{id\}"/g, `"${basePath}/camera/${devId}"`);
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(ui2);
-        return;
+        const camData = (_b2 = config2.cameras) == null ? void 0 : _b2[devId];
+        try {
+          res.setHeader("Content-Type", "text/html; charset=utf-8");
+          res.setHeader("Cache-Control", "no-store");
+          res.writeHead(200);
+          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">`);
+          res.write(`<title>Camera ${cameraName(devId)}</title>`);
+          res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
+          res.write(`<style>
+                        body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:20px;background-color:#eee}
+                        body.dark-mode{background-color:#222;color:#eee}
+                        h1{margin-bottom:20px}
+                        img#camera-stream{max-width:90vw;max-height:75vh;border:1px solid #888;background-color:#333}
+                        .controls{margin-top:20px;display:flex;gap:15px}
+                        button{font-size:1.5em;padding:10px 15px;cursor:pointer;border-radius:5px;border:1px solid #ccc}
+                        body.dark-mode button{background-color:#555;color:#eee;border-color:#777}
+                    </style></head>`);
+          res.write(`<body><h1>${cameraName(devId)} (${devId})</h1>`);
+          res.write(`<img id="camera-stream" src="${basePath}/camera/${devId}" alt="Live stream for ${devId}">`);
+          res.write(`<div class="controls"><button id="rotateBtn" title="Rotate">\u{1F504}</button><button id="mirrorBtn" title="Mirror">\u2194\uFE0F</button></div>`);
+          res.write(`<script>
+                        const devId="${devId}"; const basePath="${basePath}";
+                        const rotateBtn=document.getElementById('rotateBtn'); const mirrorBtn=document.getElementById('mirrorBtn');
+                        function applyDarkMode(){document.body.classList.toggle('dark-mode',localStorage.getItem('darkMode')==='true')} applyDarkMode();
+                        rotateBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/rotate/\${devId}\`).catch(e=>console.error('Rotate failed:',e))});
+                        mirrorBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/mirror/\${devId}\`).catch(e=>console.error('Mirror failed:',e))});
+                     </script>`);
+          res.write(`</body></html>`);
+          res.end();
+          logger.debug(`Rendered UI page for ${devId}`);
+          return;
+        } catch (uiRenderError) {
+          logger.error(`Error rendering UI page for ${devId}: ${uiRenderError.message}
+${uiRenderError.stack}`);
+          if (!res.writableEnded) {
+            if (!res.headersSent) res.writeHead(500);
+            res.end("Error rendering UI page");
+          }
+          return;
+        }
       }
       if (requestUrl.startsWith("/audio/") || basePath && requestUrl.startsWith(`${basePath}/audio/`)) {
         return;
       }
       if (requestUrl.startsWith("/favicon.ico") || basePath && requestUrl.startsWith(`${basePath}/favicon.ico`)) {
+        logger.debug(`Routing to /favicon.ico handler for ${requestUrl}`);
+        if (faviconBuffer) {
+          res.setHeader("Content-Type", "image/x-icon");
+          res.setHeader("Content-Encoding", "gzip");
+          res.writeHead(200);
+          res.end(faviconBuffer);
+        } else {
+          res.writeHead(404);
+          res.end("Favicon not found");
+        }
         return;
       }
-      if (requestUrl.startsWith("/rotate/")) {
+      if (requestUrl.startsWith(`${basePath}/rotate/`)) {
         return;
       }
-      if (requestUrl.startsWith("/mirror/")) {
+      if (requestUrl.startsWith(`${basePath}/mirror/`)) {
         return;
       }
       if (requestUrl.startsWith("/camera/") || basePath && requestUrl.startsWith(`${basePath}/camera/`)) {
@@ -51735,7 +51690,7 @@ var serveHttp = (port) => {
         logger.debug(`Routing to / (root) handler for request path: "${requestUrl}"`);
         try {
           res.setHeader("Content-Type", "text/html; charset=utf-8");
-          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+          res.setHeader("Cache-Control", "no-store");
           res.setHeader("Pragma", "no-cache");
           res.setHeader("Expires", "0");
           res.writeHead(200);
@@ -51743,75 +51698,59 @@ var serveHttp = (port) => {
           res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
           res.write(`<title>${inHass ? "Camera Handler" : "All Cameras"}</title>`);
           res.write(`<style>
-                        /* General Styles */
-                        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; transition: background-color 0.3s, color 0.3s; }
-                        body::-webkit-scrollbar { background-color: #ffffff30; width: 8px; border-radius: 8px; }
-                        body::-webkit-scrollbar-track { background-color: #00000060; border-radius: 8px; }
-                        body::-webkit-scrollbar-thumb { background-color: #555555; border-radius: 8px; }
-                        body::-webkit-scrollbar-button { display: none; }
-                        body.dark-mode { background-color: #121212; color: #f4f4f4; }
-                        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; color: white; background-color: ${inHass ? "#18bcf2" : "#0078d7"}; }
-                        header.dark-mode { background-color: ${inHass ? "#18bcf2" : "#005a9e"}; }
-                        header h1 { margin: 0; font-size: 1.5em; }
-                        header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; line-height: 1; }
-                        header button:hover { opacity: 0.8; }
-                        .camera-container { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-                        .camera-container.grid-view { flex-direction: row; flex-wrap: wrap; }
-                        /* Camera Item & Info Styles */
-                        .camera-info, .camera-item { background-color: white; border: 1px solid #ccc; border-radius: 8px; padding: 15px; }
-                        .camera-info.dark-mode, .camera-item.dark-mode { background-color: #1e1e1e; border-color: #444; }
-                        .camera-item { display: flex; flex-direction: row; align-items: center; text-decoration: none; color: inherit; }
-                        .camera-item:hover { background-color: #f0f0f0; }
-                        .camera-item.dark-mode:hover { background-color: #2c2c2c; }
-                        .camera-item img { max-width: 320px; max-height: 240px; border-radius: 4px; border: 1px solid #ccc; display: block; } /* Adjusted size */
-                        .camera-item .camera-info { margin-left: 20px; border: none; padding: 0; background: none; } /* Nested info */
-                        .info-table { display: flex; flex-direction: column; gap: 8px; }
-                        .info-table > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-                        .info-title { font-weight: bold; min-width: 50px; }
-                        code { font-size: 0.9em; border-radius: 4px; padding: 3px 6px; background-color: #eee; color: #333; border: 1px solid #ccc; word-break: break-all; }
-                        .dark-mode code { background-color: #333; color: #eee; border-color: #555; }
-                        .copy-this { cursor: pointer; padding: 3px 6px; font-size: 1.1em; border: 1px solid #ccc; border-radius: 4px; background-color: #f0f0f0; line-height: 1; }
-                        .dark-mode .copy-this { background-color: #444; border-color: #666; color: #eee; }
-                        .badge img { vertical-align: middle; height: 1.2em; }
-                        .edit-friendly-name { background: none; border: none; color: inherit; font-size: 16px; cursor: pointer; transform: scale(-1, 1); padding: 0 5px;}
-                        .edit-friendly-name:hover { color: #0078d7; }
-                        /* Grid view adjustments */
-                        .camera-container.grid-view .camera-item { flex-direction: column; max-width: 350px; }
-                        .camera-container.grid-view .camera-item img { margin: 0 auto; }
-                        .camera-container.grid-view .camera-item .info-table { display: none; }
-                        .grid-name { display: none; text-align: center; font-weight: bold; margin-top: 10px; }
-                        .camera-container.grid-view .grid-name { display: block; }
+                        body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;transition:background-color .3s,color .3s}
+                        body::-webkit-scrollbar{background-color:#ffffff30;width:8px;border-radius:8px}
+                        body::-webkit-scrollbar-track{background-color:#00000060;border-radius:8px}
+                        body::-webkit-scrollbar-thumb{background-color:#555;border-radius:8px}
+                        body::-webkit-scrollbar-button{display:none}
+                        body.dark-mode{background-color:#121212;color:#f4f4f4}
+                        header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:${inHass ? "#18bcf2" : "#0078d7"};position:sticky;top:0;z-index:10}
+                        header.dark-mode{background-color:${inHass ? "#18bcf2" : "#005a9e"}}
+                        header h1{margin:0;font-size:1.5em}
+                        header button{background:0 0;border:none;color:#fff;font-size:20px;cursor:pointer;padding:5px;line-height:1}
+                        header button:hover{opacity:.8}
+                        .camera-container{padding:20px;display:flex;flex-direction:column;gap:15px}
+                        .camera-container.grid-view{flex-direction:row;flex-wrap:wrap;gap:20px}
+                        .camera-info,.camera-item{background-color:#fff;border:1px solid #ccc;border-radius:8px;padding:15px;box-shadow:0 1px 3px #0000001a}
+                        .camera-info.dark-mode,.camera-item.dark-mode{background-color:#1e1e1e;border-color:#444}
+                        .camera-item{display:flex;flex-direction:row;align-items:flex-start;text-decoration:none;color:inherit;transition:box-shadow .2s ease-in-out}
+                        .camera-item:hover{box-shadow:0 4px 8px #00000026}
+                        .camera-item.dark-mode:hover{box-shadow:0 4px 8px #0000004d}
+                        .camera-item img{width:320px;height:240px;object-fit:cover;border-radius:4px;border:1px solid #ccc;display:block;background-color:#eee}
+                        .camera-item.dark-mode img{background-color:#333;border-color:#555}
+                        .camera-item .camera-details{margin-left:20px;border:none;padding:0;background:0 0;flex-grow:1}
+                        .info-table{display:flex;flex-direction:column;gap:8px}
+                        .info-table>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+                        .info-title{font-weight:700;min-width:50px}
+                        code{font-size:.9em;border-radius:4px;padding:3px 6px;background-color:#eee;color:#333;border:1px solid #ccc;word-break:break-all}
+                        .dark-mode code{background-color:#333;color:#eee;border-color:#555}
+                        .copy-this{cursor:pointer;padding:3px 8px;font-size:1em;border:1px solid #ccc;border-radius:4px;background-color:#f0f0f0;line-height:1}
+                        .dark-mode .copy-this{background-color:#444;border-color:#666;color:#eee}
+                        .badge img{vertical-align:middle;height:1.2em}
+                        .edit-friendly-name{background:0 0;border:none;color:inherit;font-size:1em;cursor:pointer;padding:0 5px;line-height:1}
+                        .edit-friendly-name:hover{color:#0078d7}
+                        .camera-container.grid-view .camera-item{flex-direction:column;max-width:350px;align-items:center}
+                        .camera-container.grid-view .camera-item img{margin:0 auto 10px}
+                        .camera-container.grid-view .camera-item .camera-details{margin-left:0;width:100%}
+                        .camera-container.grid-view .camera-item .info-table{display:none}
+                        .grid-name{display:none;text-align:center;font-weight:700;margin-top:10px}
+                        .camera-container.grid-view .grid-name{display:block}
+                        #instructions,#no-cameras{margin-bottom:10px}
                     </style></head>`);
-          res.write(`<body><header>
-                        <h1>${inHass ? "Camera Handler" : "All Cameras"}</h1>
-                        <div>
-                          <button id="discoverDevices" title="Discover Devices">\uF5D8</button>
-                          <button id="darkModeToggle" title="Toggle Dark Mode">\uF505</button>
-                          ${!inHass ? '<button id="viewToggle" title="Toggle View">\u229E</button>' : ""}
-                        </div>
-                      </header>
-                      <div class="camera-container" id="cameraContainer">`);
+          res.write(`<body><header><h1>${inHass ? "Camera Handler" : "All Cameras"}</h1><div>
+                          <button id="discoverDevices" title="Discover Devices">\u{1F4E1}</button>
+                          <button id="darkModeToggle" title="Toggle Dark Mode">\u{1F4A1}</button>
+                          ${!inHass ? '<button id="viewToggle" title="Toggle View">\u{1F5BC}\uFE0F</button>' : ""}
+                          </div></header><div class="camera-container" id="cameraContainer">`);
           if (inHass) {
-            res.write(`<div class="camera-info" id="instructions">
-                            Click Discover (\uF5D8) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration.
-                            </div>`);
+            res.write(`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration. <button onclick="window.location.reload()" style="margin-left: 10px; cursor: pointer;">Refresh List</button></div>`);
             if (Object.keys(sessions2).length === 0) {
               res.write(`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>`);
             } else {
               Object.keys(sessions2).forEach((id) => {
                 const session = sessions2[id];
                 const urlToCopy = `http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/${id}`;
-                res.write(`<div class="camera-info" data-session-id="${id}">
-                                    <div class="info-table">
-                                      <div>
-                                        <span class="info-title">${cameraName(id)} (${id})</span>
-                                        <code>${urlToCopy}</code>
-                                        <button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="${urlToCopy}">\u{1F4CB}</button>
-                                        <a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a>
-                                        <span style="margin-left: auto; font-size: 0.9em;">(IP: ${(session == null ? void 0 : session.dst_ip) || "N/A"})</span>
-                                      </div>
-                                    </div>
-                                  </div>`);
+                res.write(`<div class="camera-info" data-session-id="${id}"><div class="info-table"><div><span class="info-title">${cameraName(id)} (${id})</span><code>${urlToCopy}</code><button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left: auto; font-size: 0.9em;">(IP: ${(session == null ? void 0 : session.dst_ip) || "N/A"})</span></div></div></div>`);
               });
             }
           } else {
@@ -51821,103 +51760,21 @@ var serveHttp = (port) => {
               Object.keys(sessions2).forEach((id) => {
                 const session = sessions2[id];
                 const currentFriendlyName = cameraName(id);
-                res.write(`<a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="${id}">
-                                    <img src="${basePath}/camera/${id}" alt="Camera ${currentFriendlyName}" style="max-width: 320px; max-height: 240px;" onerror="this.style.display='none'; this.onerror=null;">
-                                    <div class="camera-info">
-                                      <div class="info-table">
-                                        <div><span class="info-title">ID:</span> ${id}</div>
-                                        <div><span class="info-title">Name:</span> ${currentFriendlyName}</div>
-                                        <div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${currentFriendlyName}</span><button class="edit-friendly-name" data-id="${id}">\u270E</button></div>
-                                        <div><span class="info-title">IP:</span> ${(session == null ? void 0 : session.dst_ip) || "N/A"}</div>
-                                      </div>
-                                      <div class="grid-name">${currentFriendlyName}</div>
-                                    </div>
-                                  </a>`);
+                res.write(`<a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="${id}"><img src="${basePath}/camera/${id}" alt="Camera ${currentFriendlyName}" onerror="this.style.display='none'; this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> ${id}</div><div><span class="info-title">Name:</span> ${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${currentFriendlyName}</span><button class="edit-friendly-name" data-id="${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> ${(session == null ? void 0 : session.dst_ip) || "N/A"}</div></div><div class="grid-name">${currentFriendlyName}</div></div></a>`);
               });
             }
           }
           res.write(`</div>`);
           res.write(`<script>
-                        // Copy-to-clipboard
-                        document.querySelectorAll('.copy-this').forEach(button => {
-                          button.addEventListener('click', (e) => {
-                            e.preventDefault(); // Prevent navigation if inside <a>
-                            const content = button.getAttribute('data-content');
-                            navigator.clipboard.writeText(content).then(() => {
-                              console.log('Copied: ' + content);
-                              const originalText = button.textContent; button.textContent = '\u2705';
-                              setTimeout(() => { button.textContent = originalText; }, 1500);
-                            }).catch(err => { console.error('Copy failed: ', err); });
-                          });
-                        });
-                        const basePath = "${basePath}";
-                        const cameraContainer = document.getElementById('cameraContainer');
-
-                        // Dark Mode Logic
-                        const darkModeToggle = document.getElementById('darkModeToggle');
-                        function applyDarkMode(isDark) {
-                            document.body.classList.toggle('dark-mode', isDark);
-                            document.querySelector('header')?.classList.toggle('dark-mode', isDark);
-                            document.querySelectorAll('.camera-info, .camera-item').forEach(item => item.classList.toggle('dark-mode', isDark));
-                        }
-                        if (localStorage.getItem('darkMode') === 'true') { applyDarkMode(true); } // Apply on load
-                        darkModeToggle?.addEventListener('click', () => {
-                          const isDark = document.body.classList.toggle('dark-mode');
-                          localStorage.setItem('darkMode', isDark);
-                          applyDarkMode(isDark);
-                        });
-
-                        // Discover Button
-                        document.getElementById('discoverDevices')?.addEventListener('click', () => {
-                          fetch(\`\${basePath}/discover\`)
-                            .then(response => response.ok ? response.json() : Promise.reject(new Error(\`HTTP \${response.status}\`)))
-                            .then(data => {
-                                alert(data.message || 'Discovery started.');
-                                // Optionally reload page after discovery timeout (e.g., 11 seconds)
-                                // setTimeout(() => { window.location.reload(); }, 11000);
-                             })
-                            .catch(err => { console.error('Error triggering discovery:', err); alert(\`Failed to start discovery: \${err.message}\`); });
-                        });
-
-                        // View Toggle (Standalone only)
-                        const viewToggle = document.getElementById('viewToggle');
-                        if (viewToggle && cameraContainer) {
-                            viewToggle.addEventListener('click', () => cameraContainer.classList.toggle('grid-view'));
-                        }
-
-                        // Friendly Name Edit (Standalone only)
-                        if (!${inHass}) {
-                            document.querySelectorAll('.camera-item').forEach(item => {
-                                const id = item.dataset.id;
-                                if(!id) return;
-                                const friendlyName = localStorage.getItem(\`friendlyName_\${id}\`) || cameraName(id); // Use server name as default
-                                const nameSpan = document.getElementById(\`friendlyName_\${id}\`);
-                                if(nameSpan) nameSpan.innerText = friendlyName;
-                                const gridNameDiv = item.querySelector(\`.grid-name\`);
-                                if(gridNameDiv) gridNameDiv.textContent = friendlyName;
-                                // Update link href? Maybe not needed if name isn't passed via query anymore
-                            });
-                            document.querySelectorAll('.edit-friendly-name').forEach(button => {
-                              button.addEventListener('click', (e) => {
-                                e.preventDefault(); // Stop link navigation
-                                const id = button.dataset.id;
-                                if(!id) return;
-                                const nameSpan = document.getElementById(\`friendlyName_\${id}\`);
-                                const currentName = nameSpan ? nameSpan.innerText : id;
-                                const newName = prompt('Enter new friendly name:', currentName);
-                                if (newName !== null && newName.trim() !== '') {
-                                  localStorage.setItem(\`friendlyName_\${id}\`, newName);
-                                  if(nameSpan) nameSpan.innerText = newName;
-                                  const gridNameDiv = button.closest('.camera-item')?.querySelector('.grid-name');
-                                  if(gridNameDiv) gridNameDiv.textContent = newName;
-                                  // Update link href if needed
-                                }
-                              });
-                            });
-                            // Need cameraName JS function if used in script above
-                             const configCameras = ${JSON.stringify(config2.cameras || {})}; // Pass server config safely
-                             function cameraName(id) { return configCameras[id]?.alias || id; }
-                        }
+                        document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{console.log('Copied: '+t);const e=button.textContent;button.textContent='\u2705',setTimeout(()=>{button.textContent=e},1500)}).catch(e=>{console.error('Copy failed: ',e)})})});
+                        const basePath="${basePath}";const cameraContainer=document.getElementById('cameraContainer');const darkModeToggle=document.getElementById('darkModeToggle');
+                        function applyDarkMode(e){document.body.classList.toggle('dark-mode',e),document.querySelector('header')?.classList.toggle('dark-mode',e),document.querySelectorAll('.camera-info, .camera-item').forEach(t=>t.classList.toggle('dark-mode',e))}
+                        localStorage.getItem('darkMode')==='true'&&applyDarkMode(!0),darkModeToggle?.addEventListener('click',()=>{const e=document.body.classList.toggle('dark-mode');localStorage.setItem('darkMode',e),applyDarkMode(e)});
+                        document.getElementById('discoverDevices')?.addEventListener('click',()=>{fetch(\`\${basePath}/discover\`).then(e=>e.ok?e.json():Promise.reject(new Error(\`HTTP \${e.status}\`))).then(e=>{alert(e.message||'Discovery started. Refresh page after 10s to see results.')}).catch(e=>{console.error('Error triggering discovery:',e),alert(\`Failed to start discovery: \${e.message}\`)})});
+                        const viewToggle=document.getElementById('viewToggle');viewToggle&&cameraContainer&&viewToggle.addEventListener('click',()=>cameraContainer.classList.toggle('grid-view'));
+                        const inHass=${inHass};if(!inHass){const configCameras=${JSON.stringify(config2.cameras || {})};function cameraName(e){return configCameras[e]?.alias||e}
+                        document.querySelectorAll('.camera-item').forEach(item=>{const id=item.dataset.id;if(!id)return;const friendlyName=localStorage.getItem(\`friendlyName_\${id}\`)||cameraName(id);const nameSpan=document.getElementById(\`friendlyName_\${id}\`);nameSpan&&(nameSpan.innerText=friendlyName);const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=friendlyName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(friendlyName)}\`)});
+                        document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName),nameSpan&&(nameSpan.innerText=newName);const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=newName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`);const nameDiv=item.querySelector('.info-table > div:nth-child(2)');nameDiv&&(nameDiv.childNodes[1].textContent=newName);const img=item.querySelector('img');img&&(img.alt=\`Camera \${newName}\`)}})})};
                       </script>`);
           res.write(`</body></html>`);
           res.end();
@@ -51927,25 +51784,21 @@ var serveHttp = (port) => {
           logger.error(`!!! Error rendering root page: ${renderError.message}
 ${renderError.stack}`);
           if (!res.writableEnded) {
-            if (!res.headersSent) {
-              res.writeHead(500);
-            }
+            if (!res.headersSent) res.writeHead(500);
             res.end("Internal Server Error during page render");
           }
           return;
         }
       } else {
-        logger.warn(`No route matched for: ${method} ${requestUrl} (BasePath: '${basePath}')`);
-        res.writeHead(404, { "Content-Type": "text/plain" });
+        logger.warn(`No route matched for: ${method} ${requestUrl}`);
+        res.writeHead(404);
         res.end("Not Found");
       }
     } catch (routeError) {
       logger.error(`!!! Top-level error handling route ${requestUrl}: ${routeError.message}
 ${routeError.stack}`);
       if (!res.writableEnded) {
-        if (!res.headersSent) {
-          res.writeHead(500);
-        }
+        if (!res.headersSent) res.writeHead(500);
         res.end("Internal Server Error");
       }
     }
@@ -51959,6 +51812,29 @@ ${routeError.stack}`);
     process.exit(1);
   });
   process.on("SIGTERM", () => {
+    logger.info("SIGTERM received. Shutting down...");
+    if (activeDiscoveryEmitter) {
+      logger.info("Stopping discovery...");
+      stopDiscovery(activeDiscoveryEmitter);
+      activeDiscoveryEmitter = null;
+    }
+    if (inHass && addonOptions.mqttEnabled) {
+      logger.info("Closing MQTT...");
+      closeMqtt();
+    }
+    if (httpServer) {
+      logger.info("Closing HTTP server...");
+      httpServer.close(() => {
+        logger.info("HTTP server closed.");
+        process.exit(0);
+      });
+      setTimeout(() => {
+        logger.warn("Graceful shutdown timed out. Forcing exit.");
+        process.exit(1);
+      }, 5e3);
+    } else {
+      process.exit(0);
+    }
   });
 };
 
