@@ -51376,7 +51376,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.44",
+  version: "0.0.49",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51731,7 +51731,9 @@ if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPor
   logger.warn(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
   addonOptions.uiPort = 5e3;
 }
-logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
+logger.info(
+  `Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`
+);
 var inHass = !!process.env.SUPERVISOR_TOKEN;
 logger.info(`Running inside Home Assistant environment: ${inHass}`);
 var BOUNDARY = "cam-handler-boundary";
@@ -51776,19 +51778,23 @@ var handleDeviceDiscovered = (rinfo, dev) => {
       const exifSegment = orientations[orientation];
       const jpegHeader = addExifToJpeg(s.curImage[0], exifSegment);
       const assembled = Buffer.concat([jpegHeader, ...s.curImage.slice(1)]);
-      const header = Buffer.from(`\r
+      const header = Buffer.from(
+        `\r
 --${BOUNDARY}\r
 Content-Type: image/jpeg\r
 Content-Length: ${assembled.length}\r
 \r
-`);
+`
+      );
       (_a3 = responses[safeDevId]) == null ? void 0 : _a3.forEach((res, index) => {
         if (!res.writable || res.destroyed || res.writableEnded) return;
         try {
           res.write(header);
           res.write(assembled);
         } catch (writeError) {
-          logger.error(`FRAME ${safeDevId}: ERROR writing to listener ${index}: ${writeError.message}. Removing listener.`);
+          logger.error(
+            `FRAME ${safeDevId}: ERROR writing to listener ${index}: ${writeError.message}. Removing listener.`
+          );
           if (responses[safeDevId]) {
             responses[safeDevId] = responses[safeDevId].filter((r) => r !== res);
           }
@@ -51825,7 +51831,9 @@ Content-Length: ${assembled.length}\r
   }
   if (inHass) {
     logger.info(`Attempting actions for discovered device ${safeDevId} in HA environment.`);
-    sendCameraDiscoveredNotification(dev.devId, rinfo.address, addonOptions.uiPort).catch((err) => logger.error(`Notify error during session creation: ${err.message}`));
+    sendCameraDiscoveredNotification(dev.devId, rinfo.address, addonOptions.uiPort).catch(
+      (err) => logger.error(`Notify error during session creation: ${err.message}`)
+    );
     if (addonOptions.mqttEnabled) {
       const mqttClient = getMqttClient();
       if (mqttClient && mqttClient.connected) {
@@ -51904,6 +51912,10 @@ var serveHttp = (port) => {
   httpServer = import_node_http.default.createServer((req, res) => {
     const requestUrl = req.url || "/";
     const headers = req.headers;
+    const clientIp = headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const method = req.method || "GET";
+    logger.info(`>>> Request Received: ${method} ${requestUrl} From: ${clientIp}`);
+    logger.debug(`    Headers: ${JSON.stringify(headers, null, 2)}`);
     const ingressPath = inHass ? headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "" : "";
     const basePath = ingressPath;
     const fullUrl = `http://${req.headers.host}${requestUrl}`;
@@ -52044,19 +52056,22 @@ var serveHttp = (port) => {
           res.end(JSON.stringify({ message: "Discovery started for 10 seconds." }));
         }
         return;
-      } else if (requestUrl === "/" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
+      }
+      if (requestUrl === "/" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
+        logger.debug(`Routing to / (root) handler for ${requestUrl}`);
         logger.debug(`Rendering SIMPLIFIED main page.`);
         try {
           res.setHeader("Content-Type", "text/html");
           res.setHeader("Cache-Control", "no-store");
           res.writeHead(200);
-          res.write("<!DOCTYPE html><html><head><title>Test Page</title></head><body>");
-          res.write("<h1>Camera Handler Test</h1>");
+          res.write("<!DOCTYPE html><html><head><title>Test Page (Ingress)</title></head><body>");
+          res.write("<h1>Camera Handler Test (Via Ingress)</h1>");
           res.write("<p>Server is running.</p>");
           res.write(`<div>Sessions found: ${Object.keys(sessions2).length}</div>`);
+          res.write(`<div>Base Path Detected: '${basePath}'</div>`);
           res.write("</body></html>");
           res.end();
-          logger.debug("Simplified page rendered successfully.");
+          logger.debug("Simplified page rendered successfully for root request.");
           return;
         } catch (renderError) {
           logger.error(`!!! Error rendering simplified root page: ${renderError.message}
@@ -52069,11 +52084,10 @@ ${renderError.stack}`);
           }
           return;
         }
-      } else {
-        logger.warn(`Unhandled route requested: ${req.method} ${requestUrl}`);
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.end("Not Found");
       }
+      logger.warn(`No route matched for: ${method} ${requestUrl} (BasePath: '${basePath}')`);
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("Not Found");
     } catch (routeError) {
       logger.error(`Error handling route ${requestUrl}: ${routeError.message}
 ${routeError.stack}`);
@@ -52087,10 +52101,11 @@ ${routeError.stack}`);
   });
   logger.info(`Camera Handler v${package_default.version} starting HTTP server on port ${port}`);
   httpServer.listen(port, () => {
-    logger.info(`Server listening on port ${port}`);
+    logger.info(`Server is now actively listening on port ${port}`);
   });
   httpServer.on("error", (err) => {
-    logger.error(`HTTP server error: ${err.message}`);
+    logger.error(`HTTP server failed to start or encountered an error: ${err.message}`);
+    process.exit(1);
   });
   process.on("SIGTERM", () => {
     logger.info("SIGTERM signal received. Shutting down...");
