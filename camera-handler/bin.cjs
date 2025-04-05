@@ -51260,14 +51260,6 @@ var createExifOrientation = (orientation) => {
   const exifHeader = Buffer.concat([Buffer.from("FFE1", "hex"), segmentLength]);
   return Buffer.concat([exifHeader, exifData]);
 };
-var addExifToJpeg = (jpegData, exifSegment) => {
-  if (jpegData.includes(Buffer.from("FFE1", "hex"))) {
-    throw new Error("JPEG already contains EXIF segment");
-  }
-  const soiEnd = 2;
-  const modifiedJpeg = Buffer.concat([jpegData.subarray(0, soiEnd), exifSegment, jpegData.subarray(soiEnd)]);
-  return modifiedJpeg;
-};
 
 // mqtt.ts
 var import_mqtt = __toESM(require_build5(), 1);
@@ -51377,7 +51369,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.57",
+  version: "0.0.58",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51419,7 +51411,6 @@ if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPor
 logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
 var inHass = !!process.env.SUPERVISOR_TOKEN;
 logger.info(`Running inside Home Assistant environment: ${inHass}`);
-var BOUNDARY = "cam-handler-boundary";
 var responses = {};
 var audioResponses = {};
 var sessions2 = {};
@@ -51439,8 +51430,6 @@ try {
   logger.error(`Failed to process imported favicon: ${favError.message}`);
   faviconBuffer = null;
 }
-var oMap = [1, 8, 3, 6];
-var oMapMirror = [2, 7, 4, 5];
 var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => ({ [cur]: createExifOrientation(cur), ...acc }), {});
 var cameraName = (id) => {
   var _a2, _b2;
@@ -51464,86 +51453,16 @@ var handleDeviceDiscovered = (rinfo, dev) => {
     config2.cameras[safeDevId] = { rotate: 0, mirror: false, audio: true, ...config2.cameras[safeDevId] };
   }
   s.eventEmitter.on("frame", () => {
-    var _a3, _b3, _c3;
-    if (!((_a3 = s == null ? void 0 : s.curImage) == null ? void 0 : _a3.length)) return;
-    try {
-      const camConfig = ((_b3 = config2.cameras) == null ? void 0 : _b3[safeDevId]) || { rotate: 0, mirror: false };
-      let orientation = camConfig.rotate || 0;
-      orientation = camConfig.mirror ? oMapMirror[orientation] : oMap[orientation];
-      const exifSegment = orientations[orientation];
-      const jpegHeader = addExifToJpeg(s.curImage[0], exifSegment);
-      const assembled = Buffer.concat([jpegHeader, ...s.curImage.slice(1)]);
-      const header = Buffer.from(`\r
---${BOUNDARY}\r
-Content-Type: image/jpeg\r
-Content-Length: ${assembled.length}\r
-\r
-`);
-      (_c3 = responses[safeDevId]) == null ? void 0 : _c3.forEach((res, index) => {
-        if (!res.writable || res.destroyed) return;
-        try {
-          res.write(header);
-          res.write(assembled);
-        } catch (writeError) {
-          logger.error(`FRAME ${safeDevId}: ERROR writing: ${writeError.message}. Removing listener ${index}.`);
-          if (responses[safeDevId]) responses[safeDevId] = responses[safeDevId].filter((r) => r !== res);
-          if (!res.destroyed) res.destroy(writeError);
-        }
-      });
-    } catch (frameError) {
-      logger.error(`Error processing frame for ${safeDevId}: ${frameError.message}`);
-    }
   });
   s.eventEmitter.on("disconnect", () => {
-    logger.info(`Camera ${safeDevId} session disconnected.`);
-    delete sessions2[safeDevId];
-    delete responses[safeDevId];
-    delete audioResponses[safeDevId];
   });
   if ((_c2 = (_b2 = config2.cameras) == null ? void 0 : _b2[safeDevId]) == null ? void 0 : _c2.audio) {
     s.eventEmitter.on("audio", ({ data }) => {
-      var _a3;
-      const b64encoded = Buffer.from(data).toString("base64");
-      (_a3 = audioResponses[safeDevId]) == null ? void 0 : _a3.forEach((res) => {
-        if (!res.writable || res.destroyed) return;
-        try {
-          res.write(`data: ${b64encoded}
-
-`);
-        } catch (e) {
-          logger.warn(`Error writing audio: ${e.message}`);
-        }
-      });
     });
   }
   if (inHass && addonOptions.mqttEnabled) {
     const mqttClient = getMqttClient();
     if (mqttClient == null ? void 0 : mqttClient.connected) {
-      logger.info(`MQTT Discovery: Attempting for new session ${safeDevId}`);
-      const deviceId = `yz-${safeDevId}`;
-      const configTopic = `homeassistant/camera/${deviceId}/config`;
-      const baseUrl = `http://localhost:${addonOptions.uiPort}/camera/${dev.devId}`;
-      const configPayload = {
-        name: `Camera ${dev.devId}`,
-        unique_id: deviceId,
-        topic: `camera/${deviceId}/state`,
-        mjpeg_url: baseUrl,
-        still_image_url: baseUrl,
-        device: {
-          identifiers: ["camera-handler-addon"],
-          name: "X9/A5 Camera Handler",
-          manufacturer: "YeonV Addons",
-          model: "X9/A5 Handler",
-          sw_version: package_default.version || "unknown",
-          configuration_url: `homeassistant://hassio/ingress/${process.env.ADDON_SLUG || "self"}`
-        }
-      };
-      const payloadString = JSON.stringify(configPayload);
-      logger.debug(`MQTT Payload for ${safeDevId}: ${payloadString}`);
-      mqttClient.publish(configTopic, payloadString, { retain: true, qos: 0 }, (err) => {
-        if (err) logger.error(`MQTT Pub error ${safeDevId}: ${err.message}`);
-        else logger.info(`MQTT Discovery published for ${safeDevId}`);
-      });
     } else {
       logger.warn(`MQTT enabled but client not connected for ${safeDevId}.`);
     }
@@ -51684,6 +51603,19 @@ ${uiRenderError.stack}`);
         return;
       }
       if (requestUrl.startsWith("/discover") || basePath && requestUrl.startsWith(`${basePath}/discover`)) {
+        logger.info("Discovery triggered via /discover endpoint.");
+        if (activeDiscoveryEmitter) {
+          logger.warn("Discovery already running.");
+          res.writeHead(409, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ message: "Discovery already in progress." }));
+        } else {
+          logger.info("Starting user-triggered device discovery...");
+          const triggeredDevEv = discoverDevices(config2.discovery_ips);
+          setupDiscoveryListener(triggeredDevEv);
+          activeDiscoveryEmitter = triggeredDevEv;
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ message: "Discovery started for 10 seconds. Refresh page afterwards to see results." }));
+        }
         return;
       }
       if (requestUrl === "/" || requestUrl === "//" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
