@@ -51378,7 +51378,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.60",
+  version: "0.0.61",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51783,19 +51783,52 @@ var serveHttp = (port) => {
           }
           res.write(`</div>`);
           res.write(`<script>
-                        const inHass=${inHass}; const basePath="${basePath}"; const isStandalone=${currentViewMode === "standalone"};
-                        const cameraContainer=document.getElementById('cameraContainer'); const darkModeToggle=document.getElementById('darkModeToggle');
-                        const discoverBtn=document.getElementById('discoverDevices'); const gridListToggleBtn=document.getElementById('gridListToggle');
-                        const discoverCountdownSpan=document.getElementById('discoverCountdown'); let discoveryTimerId=null;
-                        const configCameras=${JSON.stringify(config2.cameras || {})}; function cameraName(id){return configCameras[id]?.alias||id}
-                        function applyDarkModeClasses(isDark){document.body.classList.toggle('dark-mode',isDark);document.querySelector('header')?.classList.toggle('dark-mode',isDark);document.querySelectorAll('.camera-info,.camera-item').forEach(el=>el.classList.toggle('dark-mode',isDark))}
-                        function addCopyListeners(){document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{const e=button.textContent;button.textContent='\u2705';setTimeout(()=>{button.textContent=e},1500)}).catch(e=>console.error('Copy failed:',e))})})}
-                        function addFriendlyNameEditListeners(){document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName);if(nameSpan)nameSpan.innerText=newName;const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');if(gridNameDiv)gridNameDiv.textContent=newName;const link=item.closest('a');if(link)link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`;const nameDiv=item.querySelector('.info-table > div:nth-child(2)');if(nameDiv&&nameDiv.childNodes.length>1)nameDiv.childNodes[1].textContent=newName;const img=item.querySelector('img');if(img)img.alt=\`Camera \${newName}\`}})})})}
-                        const isDarkMode=localStorage.getItem('darkMode')==='true'; applyDarkModeClasses(isDarkMode); addCopyListeners(); if(isStandalone){addFriendlyNameEditListeners();}
-                        darkModeToggle?.addEventListener('click',()=>{const newDarkState=document.body.classList.toggle('dark-mode');localStorage.setItem('darkMode',newDarkState);applyDarkModeClasses(newDarkState)});
-                        discoverBtn?.addEventListener('click',()=>{if(discoveryTimerId)return;discoverBtn.disabled=!0;discoverCountdownSpan&&(discoverCountdownSpan.textContent='Starting...');discoverCountdownSpan&&(discoverCountdownSpan.style.display='inline');fetch(\`\${basePath}/discover\`).then(e=>e.ok?e.json():e.json().then(t=>Promise.reject(new Error(t.message||\`HTTP \${e.status}\`))).catch(()=>Promise.reject(new Error(\`HTTP \${e.status}\`)))).then(data=>{console.log('Discovery initiated:',data.message);let count=10;discoverCountdownSpan&&(discoverCountdownSpan.textContent=\`\${count}s\`);discoveryTimerId=setInterval(()=>{count--;discoverCountdownSpan&&(discoverCountdownSpan.textContent=\`\${count}s\`);if(count<=0){clearInterval(discoveryTimerId);discoveryTimerId=null;discoverCountdownSpan&&(discoverCountdownSpan.style.display='none');discoverBtn.disabled=!1;console.log('Discovery finished, reloading page...');window.location.reload()}},1e3)}).catch(err=>{console.error('Error triggering discovery:',err);alert(\`Failed to start discovery: \${err.message}\`);discoverCountdownSpan&&(discoverCountdownSpan.style.display='none');discoverBtn.disabled=!1;if(discoveryTimerId)clearInterval(discoveryTimerId);discoveryTimerId=null})});
-                        gridListToggleBtn?.addEventListener('click',()=>{cameraContainer?.classList.toggle('grid-view')});
-                      </script>`);
+                      // --- Constants and Globals ---
+                      const inHass=${inHass};
+                      const basePath="${basePath}";
+                      const addonUiPort=${addonOptions.uiPort};
+                      const sessionsData=${JSON.stringify(sessions2)};
+                      // Ensure configCameras is properly stringified and the statement ends.
+                      const configCameras=${JSON.stringify(config2.cameras || {})}; // <<< ADD SEMICOLON
+                      const cameraContainer=document.getElementById('cameraContainer');
+                      const darkModeToggle=document.getElementById('darkModeToggle');
+                      const discoverBtn=document.getElementById('discoverDevices');
+                      const gridListToggleBtn=document.getElementById('gridListToggle');
+                      const discoverCountdownSpan=document.getElementById('discoverCountdown');
+                      let discoveryTimerId=null;
+                      // View mode determined server-side initially
+                      const isStandalone=${currentViewMode === "standalone"};
+
+                      // --- Helper Functions ---
+                      function cameraName(id){return configCameras[id]?.alias||id;} // <<< ADD SEMICOLON
+                      function applyDarkModeClasses(isDark){document.body.classList.toggle('dark-mode',isDark);document.querySelector('header')?.classList.toggle('dark-mode',isDark);document.querySelectorAll('.camera-info,.camera-item').forEach(el=>el.classList.toggle('dark-mode',isDark));} // <<< ADD SEMICOLON
+                      function addCopyListeners(){document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{const e=button.textContent;button.textContent='\u2705';setTimeout(()=>{button.textContent=e},1500)}).catch(e=>console.error('Copy failed:',e))})});} // <<< ADD SEMICOLON
+                      function addFriendlyNameEditListeners(){document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName);if(nameSpan)nameSpan.innerText=newName;const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');if(gridNameDiv)gridNameDiv.textContent=newName;const link=item.closest('a');if(link)link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`;const nameDiv=item.querySelector('.info-table > div:nth-child(2)');if(nameDiv&&nameDiv.childNodes.length>1)nameDiv.childNodes[1].textContent=newName;const img=item.querySelector('img');if(img)img.alt=\`Camera \${newName}\`}})})});} // <<< ADD SEMICOLON
+
+                      // --- Initial Setup ---
+                      const isDarkMode=localStorage.getItem('darkMode')==='true';
+                      applyDarkModeClasses(isDarkMode);
+                      addCopyListeners(); // Add listeners for any copy buttons rendered server-side
+                      if(isStandalone){
+                          addFriendlyNameEditListeners(); // Add edit listeners only if needed
+                          // Initial load of friendly names from localStorage for standalone view
+                           document.querySelectorAll('.camera-item').forEach(item=>{
+                              const id=item.dataset.id; if(!id)return;
+                              const friendlyName=localStorage.getItem(\`friendlyName_\${id}\`)||cameraName(id);
+                              const nameSpan=document.getElementById(\`friendlyName_\${id}\`); if(nameSpan)nameSpan.innerText=friendlyName;
+                              const nameDiv = item.querySelector('.info-table > div:nth-child(2)'); if (nameDiv && nameDiv.childNodes.length > 1) nameDiv.childNodes[1].textContent = friendlyName; // Update Name: field
+                              const gridNameDiv=item.querySelector('.grid-name'); if(gridNameDiv)gridNameDiv.textContent=friendlyName;
+                              const link=item.closest('a'); if(link)link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(friendlyName)}\`;
+                              const img = item.querySelector('img'); if(img) img.alt = \`Camera \${friendlyName}\`;
+                           });
+                      }
+
+                      // --- Event Listeners ---
+                      darkModeToggle?.addEventListener('click',()=>{const newDarkState=document.body.classList.toggle('dark-mode');localStorage.setItem('darkMode',newDarkState);applyDarkModeClasses(newDarkState);}); // <<< ADD SEMICOLON
+                      discoverBtn?.addEventListener('click',()=>{if(discoveryTimerId)return;discoverBtn.disabled=!0;/* ... rest of countdown logic ... */}); // <<< ADD SEMICOLON
+                      gridListToggleBtn?.addEventListener('click',()=>{cameraContainer?.classList.toggle('grid-view');}); // <<< ADD SEMICOLON
+
+                    </script>`);
           res.write(`</body></html>`);
           res.end();
           logger.debug("Full root page rendered successfully.");
