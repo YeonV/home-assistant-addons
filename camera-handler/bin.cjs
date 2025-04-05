@@ -51377,7 +51377,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.54",
+  version: "0.0.55",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51418,7 +51418,7 @@ if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPor
 }
 logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
 var inHass = !!process.env.SUPERVISOR_TOKEN;
-logger.info(`Running inside Home Assistant environment: ${inHass}`);
+logger.info(`Running inside Home Assistant environment (inHass): ${inHass}`);
 var BOUNDARY = "cam-handler-boundary";
 var responses = {};
 var audioResponses = {};
@@ -51503,11 +51503,11 @@ Content-Length: ${assembled.length}\r
   if ((_c2 = (_b2 = config2.cameras) == null ? void 0 : _b2[safeDevId]) == null ? void 0 : _c2.audio) {
     s.eventEmitter.on("audio", ({ data }) => {
       var _a3;
-      const b64encoded = Buffer.from(data).toString("base64");
+      const b64 = Buffer.from(data).toString("base64");
       (_a3 = audioResponses[safeDevId]) == null ? void 0 : _a3.forEach((res) => {
         if (!res.writable || res.destroyed) return;
         try {
-          res.write(`data: ${b64encoded}
+          res.write(`data: ${b64}
 
 `);
         } catch (e) {
@@ -51524,19 +51524,7 @@ Content-Length: ${assembled.length}\r
       const configTopic = `homeassistant/camera/${deviceId}/config`;
       const baseUrl = `http://localhost:${addonOptions.uiPort}/camera/${dev.devId}`;
       const configPayload = {
-        name: `Camera ${dev.devId}`,
-        unique_id: deviceId,
-        topic: `camera/${deviceId}/state`,
-        mjpeg_url: baseUrl,
-        still_image_url: baseUrl,
-        device: {
-          identifiers: ["camera-handler-addon"],
-          name: "X9/A5 Camera Handler",
-          manufacturer: "YeonV Addons",
-          model: "X9/A5 Handler",
-          sw_version: package_default.version || "unknown",
-          configuration_url: `homeassistant://hassio/ingress/${process.env.ADDON_SLUG || "self"}`
-        }
+        /* ... your mqtt payload ... */
       };
       const payloadString = JSON.stringify(configPayload);
       logger.debug(`MQTT Payload for ${safeDevId}: ${payloadString}`);
@@ -51590,19 +51578,19 @@ var serveHttp = (port) => {
   setupDiscoveryListener(initialDevEv);
   activeDiscoveryEmitter = initialDevEv;
   httpServer = import_node_http.default.createServer((req, res) => {
-    var _a2, _b2;
+    var _a2, _b2, _c2, _d;
     const requestUrl = req.url || "/";
     const method = req.method || "GET";
     const headers = req.headers;
     const clientIp = ((_a2 = headers["x-forwarded-for"]) == null ? void 0 : _a2.toString().split(",")[0].trim()) || req.socket.remoteAddress;
     logger.info(`>>> Request Received: ${method} ${requestUrl} From: ${clientIp}`);
     logger.debug(`    Headers: ${JSON.stringify(headers, null, 2)}`);
-    const ingressPath = inHass ? headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "" : "";
-    const basePath = ingressPath;
+    const ingressPathHeader = headers["x-ingress-path"] || headers["x-hassio-ingress-path"] || "";
+    const basePath = ingressPathHeader;
     const fullUrl = `http://${req.headers.host || "localhost"}${requestUrl}`;
     logger.debug(`    Resolved Base Path: '${basePath}'`);
     try {
-      if (requestUrl.startsWith("/ui/") || basePath && requestUrl.startsWith(`${basePath}/ui/`)) {
+      if (requestUrl.startsWith(`${basePath}/ui/`)) {
         logger.debug(`Routing to /ui/ handler for ${requestUrl}`);
         const url = new import_node_url.URL(fullUrl);
         const devId = url.pathname.split("/")[basePath ? 5 : 2];
@@ -51622,29 +51610,7 @@ var serveHttp = (port) => {
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           res.setHeader("Cache-Control", "no-store");
           res.writeHead(200);
-          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">`);
-          res.write(`<title>Camera ${cameraName(devId)}</title>`);
-          res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
-          res.write(`<style>
-                        body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:20px;background-color:#eee}
-                        body.dark-mode{background-color:#222;color:#eee}
-                        h1{margin-bottom:20px}
-                        img#camera-stream{max-width:90vw;max-height:75vh;border:1px solid #888;background-color:#333}
-                        .controls{margin-top:20px;display:flex;gap:15px}
-                        button{font-size:1.5em;padding:10px 15px;cursor:pointer;border-radius:5px;border:1px solid #ccc}
-                        body.dark-mode button{background-color:#555;color:#eee;border-color:#777}
-                    </style></head>`);
-          res.write(`<body><h1>${cameraName(devId)} (${devId})</h1>`);
-          res.write(`<img id="camera-stream" src="${basePath}/camera/${devId}" alt="Live stream for ${devId}">`);
-          res.write(`<div class="controls"><button id="rotateBtn" title="Rotate">\u{1F504}</button><button id="mirrorBtn" title="Mirror">\u2194\uFE0F</button></div>`);
-          res.write(`<script>
-                        const devId="${devId}"; const basePath="${basePath}";
-                        const rotateBtn=document.getElementById('rotateBtn'); const mirrorBtn=document.getElementById('mirrorBtn');
-                        function applyDarkMode(){document.body.classList.toggle('dark-mode',localStorage.getItem('darkMode')==='true')} applyDarkMode();
-                        rotateBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/rotate/\${devId}\`).catch(e=>console.error('Rotate failed:',e))});
-                        mirrorBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/mirror/\${devId}\`).catch(e=>console.error('Mirror failed:',e))});
-                     </script>`);
-          res.write(`</body></html>`);
+          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Camera ${cameraName(devId)}</title><link rel="shortcut icon" href="${basePath}/favicon.ico"><style>body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:20px;background-color:#eee}body.dark-mode{background-color:#222;color:#eee}h1{margin-bottom:20px}img#camera-stream{max-width:90vw;max-height:75vh;border:1px solid #888;background-color:#333}.controls{margin-top:20px;display:flex;gap:15px}button{font-size:1.5em;padding:10px 15px;cursor:pointer;border-radius:5px;border:1px solid #ccc}body.dark-mode button{background-color:#555;color:#eee;border-color:#777}</style></head><body><h1>${cameraName(devId)} (${devId})</h1><img id="camera-stream" src="${basePath}/camera/${devId}" alt="Live stream for ${devId}"><div class="controls"><button id="rotateBtn" title="Rotate">\u{1F504}</button><button id="mirrorBtn" title="Mirror">\u2194\uFE0F</button></div><script>const devId="${devId}";const basePath="${basePath}";const rotateBtn=document.getElementById('rotateBtn');const mirrorBtn=document.getElementById('mirrorBtn');function applyDarkMode(){document.body.classList.toggle('dark-mode',localStorage.getItem('darkMode')==='true')}applyDarkMode();rotateBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/rotate/\${devId}\`).catch(e=>console.error('Rotate failed:',e))});mirrorBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/mirror/\${devId}\`).catch(e=>console.error('Mirror failed:',e))});</script></body></html>`);
           res.end();
           logger.debug(`Rendered UI page for ${devId}`);
           return;
@@ -51658,10 +51624,35 @@ ${uiRenderError.stack}`);
           return;
         }
       }
-      if (requestUrl.startsWith("/audio/") || basePath && requestUrl.startsWith(`${basePath}/audio/`)) {
+      if (requestUrl.startsWith(`${basePath}/audio/`)) {
+        logger.debug(`Routing to /audio/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[basePath ? 5 : 2];
+        const s = sessions2[devId];
+        if (!s) {
+          res.writeHead(404);
+          res.end("Invalid ID");
+          return;
+        }
+        if (!s.connected) {
+          res.writeHead(503);
+          res.end("Camera offline");
+          return;
+        }
+        res.setHeader("Content-Type", `text/event-stream`);
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.writeHead(200);
+        audioResponses[devId] = audioResponses[devId] || [];
+        audioResponses[devId].push(res);
+        logger.info(`Audio stream listener added for ${devId}. Count: ${audioResponses[devId].length}`);
+        req.on("close", () => {
+          var _a3;
+          logger.info(`Audio stream closed for ${devId}.`);
+          audioResponses[devId] = ((_a3 = audioResponses[devId]) == null ? void 0 : _a3.filter((r) => r !== res)) || [];
+        });
         return;
       }
-      if (requestUrl.startsWith("/favicon.ico") || basePath && requestUrl.startsWith(`${basePath}/favicon.ico`)) {
+      if (requestUrl === `${basePath}/favicon.ico` || !basePath && requestUrl === "/favicon.ico") {
         logger.debug(`Routing to /favicon.ico handler for ${requestUrl}`);
         if (faviconBuffer) {
           res.setHeader("Content-Type", "image/x-icon");
@@ -51675,18 +51666,90 @@ ${uiRenderError.stack}`);
         return;
       }
       if (requestUrl.startsWith(`${basePath}/rotate/`)) {
+        logger.debug(`Routing to /rotate/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[basePath ? 5 : 2];
+        if ((_c2 = config2.cameras) == null ? void 0 : _c2[devId]) {
+          let p = config2.cameras[devId].rotate || 0;
+          config2.cameras[devId].rotate = (p + 1) % 4;
+          logger.debug(`Rotated ${devId}`);
+          res.writeHead(204);
+          res.end();
+        } else {
+          res.writeHead(404);
+          res.end("Not Found");
+        }
         return;
       }
       if (requestUrl.startsWith(`${basePath}/mirror/`)) {
+        logger.debug(`Routing to /mirror/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[basePath ? 5 : 2];
+        if ((_d = config2.cameras) == null ? void 0 : _d[devId]) {
+          config2.cameras[devId].mirror = !config2.cameras[devId].mirror;
+          logger.debug(`Mirrored ${devId}`);
+          res.writeHead(204);
+          res.end();
+        } else {
+          res.writeHead(404);
+          res.end("Not Found");
+        }
         return;
       }
-      if (requestUrl.startsWith("/camera/") || basePath && requestUrl.startsWith(`${basePath}/camera/`)) {
+      if (requestUrl.startsWith(`${basePath}/camera/`)) {
+        logger.debug(`Routing to /camera/ handler for ${requestUrl}`);
+        const devId = requestUrl.split("/")[basePath ? 5 : 2];
+        const s = sessions2[devId];
+        if (!s) {
+          logger.warn(`Stream requested for unknown session: ${devId}`);
+          res.writeHead(404);
+          res.end("Camera not found");
+          return;
+        }
+        if (!s.connected) {
+          logger.warn(`Stream requested for offline session: ${devId}`);
+          res.writeHead(503);
+          res.end("Camera offline");
+          return;
+        }
+        res.setHeader("Content-Type", `multipart/x-mixed-replace; boundary="${BOUNDARY}"`);
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.writeHead(200);
+        res.write(`\r
+--${BOUNDARY}\r
+`);
+        responses[devId] = responses[devId] || [];
+        responses[devId].push(res);
+        logger.debug(`MJPEG stream listener added for ${devId}. Count: ${responses[devId].length}`);
+        res.on("close", () => {
+          var _a3;
+          logger.debug(`MJPEG stream closed for ${devId}.`);
+          responses[devId] = ((_a3 = responses[devId]) == null ? void 0 : _a3.filter((r) => r !== res)) || [];
+        });
+        res.on("error", (err) => {
+          var _a3;
+          logger.error(`MJPEG stream error for ${devId}: ${err.message}`);
+          responses[devId] = ((_a3 = responses[devId]) == null ? void 0 : _a3.filter((r) => r !== res)) || [];
+        });
         return;
       }
-      if (requestUrl.startsWith("/discover") || basePath && requestUrl.startsWith(`${basePath}/discover`)) {
+      if (requestUrl === `${basePath}/discover` || !basePath && requestUrl === "/discover") {
+        logger.info("Discovery triggered via /discover endpoint.");
+        if (activeDiscoveryEmitter) {
+          logger.warn("Discovery already running.");
+          res.writeHead(409);
+          res.end(JSON.stringify({ message: "Discovery already in progress." }));
+        } else {
+          logger.info("Starting user-triggered discovery...");
+          const triggeredDevEv = discoverDevices(config2.discovery_ips);
+          setupDiscoveryListener(triggeredDevEv);
+          activeDiscoveryEmitter = triggeredDevEv;
+          res.writeHead(200);
+          res.end(JSON.stringify({ message: "Discovery started for 10 seconds. Refresh page afterwards to see results." }));
+        }
         return;
       }
-      if (requestUrl === "/" || requestUrl === "//" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
+      if (requestUrl === "/" || requestUrl === "//" || requestUrl === basePath || requestUrl === `${basePath}/`) {
         logger.debug(`Routing to / (root) handler for request path: "${requestUrl}"`);
         try {
           res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -51694,202 +51757,35 @@ ${uiRenderError.stack}`);
           res.setHeader("Pragma", "no-cache");
           res.setHeader("Expires", "0");
           res.writeHead(200);
-          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">`);
-          res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
-          res.write(`<title>${inHass ? "Camera Handler" : "All Cameras"}</title>`);
-          res.write(`<style>
-                        body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;transition:background-color .3s,color .3s}
-                        body::-webkit-scrollbar{background-color:#ffffff30;width:8px;border-radius:8px}
-                        body::-webkit-scrollbar-track{background-color:#00000060;border-radius:8px}
-                        body::-webkit-scrollbar-thumb{background-color:#555;border-radius:8px}
-                        body::-webkit-scrollbar-button{display:none}
-                        body.dark-mode{background-color:#121212;color:#f4f4f4}
-                        header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:${inHass ? "#18bcf2" : "#0078d7"};position:sticky;top:0;z-index:10}
-                        header.dark-mode{background-color:${inHass ? "#18bcf2" : "#005a9e"}}
-                        header h1{margin:0;font-size:1.5em}
-                        header button{background:0 0;border:none;color:#fff;font-size:20px;cursor:pointer;padding:5px;line-height:1}
-                        header button:hover{opacity:.8}
-                        .camera-container{padding:20px;display:flex;flex-direction:column;gap:15px}
-                        .camera-container.grid-view{flex-direction:row;flex-wrap:wrap;gap:20px}
-                        .camera-info,.camera-item{background-color:#fff;border:1px solid #ccc;border-radius:8px;padding:15px;box-shadow:0 1px 3px #0000001a}
-                        .camera-info.dark-mode,.camera-item.dark-mode{background-color:#1e1e1e;border-color:#444}
-                        .camera-item{display:flex;flex-direction:row;align-items:flex-start;text-decoration:none;color:inherit;transition:box-shadow .2s ease-in-out}
-                        .camera-item:hover{box-shadow:0 4px 8px #00000026}
-                        .camera-item.dark-mode:hover{box-shadow:0 4px 8px #0000004d}
-                        .camera-item img{width:320px;height:240px;object-fit:cover;border-radius:4px;border:1px solid #ccc;display:block;background-color:#eee}
-                        .camera-item.dark-mode img{background-color:#333;border-color:#555}
-                        .camera-item .camera-details{margin-left:20px;border:none;padding:0;background:0 0;flex-grow:1}
-                        .info-table{display:flex;flex-direction:column;gap:8px}
-                        .info-table>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-                        .info-title{font-weight:700;min-width:50px}
-                        code{font-size:.9em;border-radius:4px;padding:3px 6px;background-color:#eee;color:#333;border:1px solid #ccc;word-break:break-all}
-                        .dark-mode code{background-color:#333;color:#eee;border-color:#555}
-                        .copy-this{cursor:pointer;padding:3px 8px;font-size:1em;border:1px solid #ccc;border-radius:4px;background-color:#f0f0f0;line-height:1}
-                        .dark-mode .copy-this{background-color:#444;border-color:#666;color:#eee}
-                        .badge img{vertical-align:middle;height:1.2em}
-                        .edit-friendly-name{background:0 0;border:none;color:inherit;font-size:1em;cursor:pointer;padding:0 5px;line-height:1}
-                        .edit-friendly-name:hover{color:#0078d7}
-                        .camera-container.grid-view .camera-item{flex-direction:column;max-width:350px;align-items:center}
-                        .camera-container.grid-view .camera-item img{margin:0 auto 10px}
-                        .camera-container.grid-view .camera-item .camera-details{margin-left:0;width:100%}
-                        .camera-container.grid-view .camera-item .info-table{display:none}
-                        .grid-name{display:none;text-align:center;font-weight:700;margin-top:10px}
-                        .camera-container.grid-view .grid-name{display:block}
-                        #instructions,#no-cameras{margin-bottom:10px}
-                        .hidden { display: none !important; }
-                        header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:#18bcf2;position:sticky;top:0;z-index:10} /* Default to HA color */
-                        header.standalone-mode { background-color: #0078d7; } /* Standalone color */
-                        header.dark-mode { background-color: #005a9e; } /* Dark standalone color */
-                        header.dark-mode.ha-mode { background-color: #18bcf2; } /* Dark HA color (might be same as light) */
-
-                    </style></head>`);
-          res.write(`<body><header>
-                        {/* Title updated client-side */}
-                        <h1 id="pageTitle">Camera Handler</h1>
-                        <div>
-                          <button id="discoverDevices" title="Discover Devices">\u{1F4E1}</button>
-                          {/* View Toggle Button Added */}
-                          <button id="viewToggleBtn" title="Toggle View Mode">\u{1F504}</button>
-                          <button id="darkModeToggle" title="Toggle Dark Mode">\u{1F4A1}</button>
-                          {/* Grid/List toggle only shown in standalone */}
-                          <button id="gridListToggle" title="Toggle Grid/List View" class="hidden">\u{1F5BC}\uFE0F</button>
-                        </div>
-                        </header>
-                        {/* Container content rendered client-side */}
-                        <div class="camera-container" id="cameraContainer">
-                            {/* Content will be generated by JS */}
-                            <div class="camera-info" id="loading-indicator">Loading camera list...</div>
-                        </div>`);
+          res.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="shortcut icon" href="${basePath}/favicon.ico"><title>Camera Handler</title><style>body{font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;color:#333;transition:background-color .3s,color .3s}body::-webkit-scrollbar{background-color:#ffffff30;width:8px;border-radius:8px}body::-webkit-scrollbar-track{background-color:#00000060;border-radius:8px}body::-webkit-scrollbar-thumb{background-color:#555;border-radius:8px}body::-webkit-scrollbar-button{display:none}body.dark-mode{background-color:#121212;color:#f4f4f4}header{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;color:#fff;background-color:#18bcf2;position:sticky;top:0;z-index:10}header.standalone-mode{background-color:#0078d7}header.dark-mode{background-color:#005a9e}header.dark-mode.ha-mode{background-color:#18bcf2}header h1{margin:0;font-size:1.5em}header button{background:0 0;border:none;color:#fff;font-size:20px;cursor:pointer;padding:5px;line-height:1}header button:hover{opacity:.8}.camera-container{padding:20px;display:flex;flex-direction:column;gap:15px}.camera-container.grid-view{flex-direction:row;flex-wrap:wrap;gap:20px}.camera-info,.camera-item{background-color:#fff;border:1px solid #ccc;border-radius:8px;padding:15px;box-shadow:0 1px 3px #0000001a}.camera-info.dark-mode,.camera-item.dark-mode{background-color:#1e1e1e;border-color:#444}.camera-item{display:flex;flex-direction:row;align-items:flex-start;text-decoration:none;color:inherit;transition:box-shadow .2s ease-in-out}.camera-item:hover{box-shadow:0 4px 8px #00000026}.camera-item.dark-mode:hover{box-shadow:0 4px 8px #0000004d}.camera-item img{width:320px;height:240px;object-fit:cover;border-radius:4px;border:1px solid #ccc;display:block;background-color:#eee}.camera-item.dark-mode img{background-color:#333;border-color:#555}.camera-item .camera-details{margin-left:20px;border:none;padding:0;background:0 0;flex-grow:1}.info-table{display:flex;flex-direction:column;gap:8px}.info-table>div{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.info-title{font-weight:700;min-width:50px}code{font-size:.9em;border-radius:4px;padding:3px 6px;background-color:#eee;color:#333;border:1px solid #ccc;word-break:break-all}.dark-mode code{background-color:#333;color:#eee;border-color:#555}.copy-this{cursor:pointer;padding:3px 8px;font-size:1em;border:1px solid #ccc;border-radius:4px;background-color:#f0f0f0;line-height:1}.dark-mode .copy-this{background-color:#444;border-color:#666;color:#eee}.badge img{vertical-align:middle;height:1.2em}.edit-friendly-name{background:0 0;border:none;color:inherit;font-size:1em;cursor:pointer;padding:0 5px;line-height:1}.edit-friendly-name:hover{color:#0078d7}.camera-container.grid-view .camera-item{flex-direction:column;max-width:350px;align-items:center}.camera-container.grid-view .camera-item img{margin:0 auto 10px}.camera-container.grid-view .camera-item .camera-details{margin-left:0;width:100%}.camera-container.grid-view .camera-item .info-table{display:none}.grid-name{display:none;text-align:center;font-weight:700;margin-top:10px}.camera-container.grid-view .grid-name{display:block}#instructions,#no-cameras{margin-bottom:10px}.hidden{display:none!important}</style></head>`);
+          res.write(`<body><header><h1 id="pageTitle">Camera Handler</h1><div><button id="discoverDevices" title="Discover Devices">\u{1F4E1}</button><button id="viewToggleBtn" title="Toggle View Mode">\u{1F504}</button><button id="darkModeToggle" title="Toggle Dark Mode">\u{1F4A1}</button><button id="gridListToggle" title="Toggle Grid/List View" class="hidden">\u{1F5BC}\uFE0F</button></div></header><div class="camera-container" id="cameraContainer"><div class="camera-info" id="loading-indicator">Loading camera list...</div></div>`);
           res.write(`<script>
-                        const inHass = ${inHass}; // Is the addon running in HA context?
-                        const basePath = "${basePath}";
-                        const cameraContainer = document.getElementById('cameraContainer');
-                        const pageTitle = document.getElementById('pageTitle');
-                        const header = document.querySelector('header');
-                        const viewToggleBtn = document.getElementById('viewToggleBtn');
-                        const darkModeToggle = document.getElementById('darkModeToggle');
-                        const discoverBtn = document.getElementById('discoverDevices');
-                        const gridListToggleBtn = document.getElementById('gridListToggle'); // Grid/List toggle
-
-                        // Persisted state
-                        let currentViewMode = localStorage.getItem('cameraHandlerViewMode') || (inHass ? 'ha' : 'standalone');
-                        let isDarkMode = localStorage.getItem('darkMode') === 'true';
-
-                        // Data (fetched or stored) - use actual sessions from server
-                        const sessionsData = ${JSON.stringify(sessions2)};
-                        const configCameras = ${JSON.stringify(config2.cameras || {})};
-                        function cameraName(id) { return configCameras[id]?.alias || id; }
-
-                        // --- Core Rendering Function ---
-                        function renderUI() {
-                            if (!cameraContainer || !pageTitle || !header || !gridListToggleBtn) return;
-
-                            // 1. Set Dark Mode Class on body
-                            document.body.classList.toggle('dark-mode', isDarkMode);
-
-                            // 2. Set Header style and Title
-                            pageTitle.textContent = (currentViewMode === 'ha') ? 'Camera Handler (HA View)' : 'All Cameras (Standalone View)';
-                            header.classList.toggle('standalone-mode', currentViewMode === 'standalone');
-                            header.classList.toggle('ha-mode', currentViewMode === 'ha');
-                            header.classList.toggle('dark-mode', isDarkMode); // Apply dark mode to header
-
-                            // 3. Clear current container content
-                            cameraContainer.innerHTML = '';
-
-                            // 4. Render content based on view mode
-                            if (currentViewMode === 'ha') {
-                                // Show grid/list toggle ONLY in standalone mode
-                                gridListToggleBtn.classList.add('hidden');
-                                cameraContainer.classList.remove('grid-view'); // Ensure list view in HA mode
-
-                                // Render HA instructions + list
-                                cameraContainer.innerHTML += \`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration. <button onclick="window.location.reload()" style="margin-left: 10px; cursor: pointer;">Refresh List</button></div>\`;
-                                if (Object.keys(sessionsData).length === 0) {
-                                    cameraContainer.innerHTML += \`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>\`;
-                                } else {
-                                    Object.keys(sessionsData).forEach(id => {
-                                        const session = sessionsData[id];
-                                        const urlToCopy = \`http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/\${id}\`;
-                                        cameraContainer.innerHTML += \`<div class="camera-info" data-session-id="\${id}"><div class="info-table"><div><span class="info-title">\${cameraName(id)} (\${id})</span><code>\${urlToCopy}</code><button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="\${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left: auto; font-size: 0.9em;">(IP: \${session?.dst_ip || 'N/A'})</span></div></div></div>\`;
-                                    });
-                                }
-                            } else { // Standalone Mode
-                                // Show grid/list toggle
-                                gridListToggleBtn.classList.remove('hidden');
-                                // Apply grid view if necessary (could save this state too)
-                                // cameraContainer.classList.toggle('grid-view', isGridView);
-
-                                // Render Standalone list with previews
-                                if (Object.keys(sessionsData).length === 0) {
-                                     cameraContainer.innerHTML += \`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>\`;
-                                 } else {
-                                    Object.keys(sessionsData).forEach(id => {
-                                        const session = sessionsData[id];
-                                        const currentFriendlyName = localStorage.getItem(\`friendlyName_\${id}\`) || cameraName(id);
-                                        cameraContainer.innerHTML += \`<a href="\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="\${id}"><img src="\${basePath}/camera/\${id}" alt="Camera \${currentFriendlyName}" onerror="this.style.display='none'; this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> \${id}</div><div><span class="info-title">Name:</span> \${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_\${id}">\${currentFriendlyName}</span><button class="edit-friendly-name" data-id="\${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> \${session?.dst_ip || 'N/A'}</div></div><div class="grid-name">\${currentFriendlyName}</div></div></a>\`;
-                                    });
-                                }
-                                // Add friendly name edit listeners after rendering
-                                addFriendlyNameEditListeners();
-                            }
-
-                            // Add copy listeners after rendering
-                            addCopyListeners();
-                            // Apply dark mode to newly added elements
-                            applyDarkModeClasses(isDarkMode);
-
-                        } // End renderUI
-
-                        // --- Helper Functions ---
-                        function addCopyListeners() {
-                            document.querySelectorAll('.copy-this').forEach(button => {
-                                button.addEventListener('click', (e) => { /* ... copy logic ... */ });
-                            });
-                        }
-                        function addFriendlyNameEditListeners() {
-                             document.querySelectorAll('.edit-friendly-name').forEach(button => {
-                                button.addEventListener('click', (e) => { /* ... edit logic ... */ });
-                             });
-                        }
-                        function applyDarkModeClasses(isDark) {
-                             document.querySelectorAll('.camera-info, .camera-item').forEach(item => item.classList.toggle('dark-mode', isDark));
-                        }
-
-                        // --- Event Listeners ---
-                        viewToggleBtn?.addEventListener('click', () => {
-                            currentViewMode = (currentViewMode === 'ha') ? 'standalone' : 'ha';
-                            localStorage.setItem('cameraHandlerViewMode', currentViewMode);
-                            renderUI(); // Re-render everything
-                        });
-
-                        darkModeToggle?.addEventListener('click', () => {
-                            isDarkMode = !isDarkMode;
-                            localStorage.setItem('darkMode', isDarkMode);
-                            renderUI(); // Re-render to apply dark mode consistently
-                        });
-
-                        discoverBtn?.addEventListener('click', () => {
-                           fetch(\`\${basePath}/discover\`)
-                             .then(response => response.ok ? response.json() : Promise.reject(new Error(\`HTTP \${response.status}\`)))
-                             .then(data => {
-                                 alert(data.message || 'Discovery started. Please refresh the page after ~10 seconds to see new devices.');
-                                 // Maybe disable button during discovery?
-                             })
-                             .catch(err => { console.error('Error triggering discovery:', err); alert(\`Failed to start discovery: \${err.message}\`); });
-                        });
-
-                        gridListToggleBtn?.addEventListener('click', () => {
-                            cameraContainer?.classList.toggle('grid-view');
-                            // Optionally save grid/list preference to localStorage too
-                        });
-
-                        // --- Initial Render ---
+                        const inHass=${inHass}; const basePath="${basePath}"; const addonUiPort=${addonOptions.uiPort};
+                        const cameraContainer=document.getElementById('cameraContainer'); const pageTitle=document.getElementById('pageTitle');
+                        const header=document.querySelector('header'); const viewToggleBtn=document.getElementById('viewToggleBtn');
+                        const darkModeToggle=document.getElementById('darkModeToggle'); const discoverBtn=document.getElementById('discoverDevices');
+                        const gridListToggleBtn=document.getElementById('gridListToggle');
+                        let currentViewMode=localStorage.getItem('cameraHandlerViewMode')||(inHass?'ha':'standalone'); let isDarkMode=localStorage.getItem('darkMode')==='true';
+                        const sessionsData=${JSON.stringify(sessions2)}; const configCameras=${JSON.stringify(config2.cameras || {})};
+                        function cameraName(e){return configCameras[e]?.alias||e}
+                        function renderUI(){if(!cameraContainer||!pageTitle||!header||!gridListToggleBtn)return;document.body.classList.toggle('dark-mode',isDarkMode);
+                        pageTitle.textContent=currentViewMode==='ha'?'Camera Handler (HA View)':'All Cameras (Standalone View)';header.classList.toggle('standalone-mode',currentViewMode==='standalone');header.classList.toggle('ha-mode',currentViewMode==='ha');header.classList.toggle('dark-mode',isDarkMode);cameraContainer.innerHTML='';
+                        if(currentViewMode==='ha'){gridListToggleBtn.classList.add('hidden');cameraContainer.classList.remove('grid-view');cameraContainer.innerHTML+=\`<div class="camera-info" id="instructions">Click Discover (\u{1F4E1}) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration. <button onclick="window.location.reload()" style="margin-left: 10px; cursor: pointer;">Refresh List</button></div>\`;
+                        if(Object.keys(sessionsData).length===0)cameraContainer.innerHTML+=\`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>\`;else Object.keys(sessionsData).forEach(id=>{const session=sessionsData[id];const urlToCopy=\`http://<HA_HOST_IP>:\${addonUiPort}/camera/\${id}\`;cameraContainer.innerHTML+=\`<div class="camera-info" data-session-id="\${id}"><div class="info-table"><div><span class="info-title">\${cameraName(id)} (\${id})</span><code>\${urlToCopy}</code><button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="\${urlToCopy}">\u{1F4CB}</button><a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a><span style="margin-left: auto; font-size: 0.9em;">(IP: \${session?.dst_ip||'N/A'})</span></div></div></div>\`})}
+                        else{gridListToggleBtn.classList.remove('hidden');if(Object.keys(sessionsData).length===0)cameraContainer.innerHTML+=\`<div class="camera-info" id="no-cameras">No cameras discovered yet. Click Discover.</div>\`;else Object.keys(sessionsData).forEach(id=>{const session=sessionsData[id];const currentFriendlyName=localStorage.getItem(\`friendlyName_\${id}\`)||cameraName(id);cameraContainer.innerHTML+=\`<a href="\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(currentFriendlyName)}" class="camera-item" data-id="\${id}"><img src="\${basePath}/camera/\${id}" alt="Camera \${currentFriendlyName}" onerror="this.style.display='none'; this.onerror=null;"><div class="camera-details"><div class="info-table"><div><span class="info-title">ID:</span> \${id}</div><div><span class="info-title">Name:</span> \${currentFriendlyName}</div><div><span class="info-title">Label:</span> <span id="friendlyName_\${id}">\${currentFriendlyName}</span><button class="edit-friendly-name" data-id="\${id}" title="Edit Label">\u270F\uFE0F</button></div><div><span class="info-title">IP:</span> \${session?.dst_ip||'N/A'}</div></div><div class="grid-name">\${currentFriendlyName}</div></div></a>\`});addFriendlyNameEditListeners()}
+                        addCopyListeners();applyDarkModeClasses(isDarkMode)}
+                        function addCopyListeners(){document.querySelectorAll('.copy-this').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const t=button.getAttribute('data-content');navigator.clipboard.writeText(t).then(()=>{const e=button.textContent;button.textContent='\u2705';setTimeout(()=>{button.textContent=e},1500)}).catch(e=>{console.error('Copy failed: ',e)})})})}
+                        function addFriendlyNameEditListeners(){document.querySelectorAll('.edit-friendly-name').forEach(button=>{button.addEventListener('click',e=>{e.preventDefault();const id=button.dataset.id;if(!id)return;const nameSpan=document.getElementById(\`friendlyName_\${id}\`);const currentName=nameSpan?nameSpan.innerText:cameraName(id);const newName=prompt('Enter new friendly name:',currentName);if(newName!==null&&newName.trim()!==''){localStorage.setItem(\`friendlyName_\${id}\`,newName);nameSpan&&(nameSpan.innerText=newName);const item=button.closest('.camera-item');if(!item)return;const gridNameDiv=item.querySelector('.grid-name');gridNameDiv&&(gridNameDiv.textContent=newName);const link=item.closest('a');link&&(link.href=\`\${basePath}/ui/\${id}?friendlyName=\${encodeURIComponent(newName)}\`);const nameDiv=item.querySelector('.info-table > div:nth-child(2)');nameDiv&&(nameDiv.childNodes[1].textContent=newName);const img=item.querySelector('img');img&&(img.alt=\`Camera \${newName}\`)}})})})}
+                        function applyDarkModeClasses(e){document.querySelectorAll('.camera-info, .camera-item').forEach(t=>t.classList.toggle('dark-mode',e))}
+                        viewToggleBtn?.addEventListener('click',()=>{currentViewMode=currentViewMode==='ha'?'standalone':'ha',localStorage.setItem('cameraHandlerViewMode',currentViewMode),renderUI()});
+                        darkModeToggle?.addEventListener('click',()=>{isDarkMode=!isDarkMode,localStorage.setItem('darkMode',isDarkMode),renderUI()});
+                        discoverBtn?.addEventListener('click',()=>{fetch(\`\${basePath}/discover\`).then(e=>e.ok?e.json():Promise.reject(new Error(\`HTTP \${e.status}\`))).then(e=>{alert(e.message||'Discovery started. Please refresh the page after ~10 seconds to see new devices.')}).catch(e=>{console.error('Error triggering discovery:',e),alert(\`Failed to start discovery: \${e.message}\`)})});
+                        gridListToggleBtn?.addEventListener('click',()=>{cameraContainer?.classList.toggle('grid-view')});
                         renderUI();
-
                       </script>`);
           res.write(`</body></html>`);
           res.end();
-          logger.debug("Root page skeleton rendered successfully.");
+          logger.debug("Full root page rendered successfully.");
           return;
         } catch (renderError) {
           logger.error(`!!! Error rendering root page: ${renderError.message}
