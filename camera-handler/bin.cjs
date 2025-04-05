@@ -50764,28 +50764,22 @@ var createResponseForControlCommand = (session, dv) => {
     case ControlCommands.VideoParamSetAck:
       logger.debug("Video param set ack");
       return [];
+    case 65360:
+      logger.debug(`Received known periodic command 0x${cmd_id.toString(16)}, ignoring.`);
+      return [];
+    // Return empty array, no response needed
+    // --- End Add Case ---
     default:
       logger.info(`Unhandled control command: 0x${cmd_id.toString(16)}`);
       try {
         const dataOffset = 20;
         const encryptedPayloadLen = payload_len - 4;
-        if (encryptedPayloadLen > 0) {
-          if (dataOffset + encryptedPayloadLen <= dv.byteLength) {
-            const encryptedPayloadBytes = dv.add(dataOffset).readByteArray(encryptedPayloadLen);
-            logger.info(` -> Raw Encrypted Payload (Hex): ${Buffer.from(encryptedPayloadBytes.buffer).toString("hex")}`);
-            const bufferCopy = encryptedPayloadBytes.buffer.slice(0);
-            const decryptedPayloadView = new DataView(bufferCopy);
-            XqBytesDec(decryptedPayloadView, encryptedPayloadLen, 4);
-            logger.info(` -> Decrypted Payload (Hex): ${Buffer.from(decryptedPayloadView.buffer).toString("hex")}`);
-            try {
-              logger.info(` -> Decrypted Payload (ASCII): ${Buffer.from(decryptedPayloadView.buffer).toString("ascii")}`);
-            } catch (asciiError) {
-            }
-          } else {
-            logger.warn(` -> Invalid payload length for unhandled command 0x${cmd_id.toString(16)}. Declared encrypted length: ${encryptedPayloadLen}, Available in packet after offset ${dataOffset}: ${dv.byteLength - dataOffset}`);
-          }
+        if (encryptedPayloadLen > 0 && dataOffset + encryptedPayloadLen <= dv.byteLength) {
+          logger.info(` -> Default Handler Payload (Hex): ...`);
+        } else if (encryptedPayloadLen <= 0) {
+          logger.info(` -> Command 0x${cmd_id.toString(16)} has no payload data.`);
         } else {
-          logger.info(` -> Command 0x${cmd_id.toString(16)} has no payload data (payload_len <= 4).`);
+          logger.warn(` -> Invalid payload length for unhandled command 0x${cmd_id.toString(16)}.`);
         }
       } catch (e) {
         logger.error(` -> Error processing payload for unhandled command 0x${cmd_id.toString(16)}: ${e.message}`);
@@ -51103,7 +51097,7 @@ var import_node_events2 = __toESM(require("events"), 1);
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.42",
+  version: "0.0.43",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51473,15 +51467,12 @@ function initializeMqtt() {
   console.log("DEBUG: Initializing central MQTT client...");
   client = import_mqtt.default.connect(brokerUrl, options);
   client.on("connect", () => {
-    console.log("DEBUG: Central MQTT Client Connected");
     logger.info("Central MQTT Client Connected");
   });
   client.on("error", (err) => {
-    console.error("ERROR: Central MQTT Client Error:", err);
     logger.error("Central MQTT Client Error:", err);
   });
   client.on("close", () => {
-    console.log("DEBUG: Central MQTT Client Closed");
     logger.info("Central MQTT Client Closed");
     client = null;
   });
@@ -51822,6 +51813,10 @@ var asd_default = `<!DOCTYPE html>
 `;
 
 // http_server.ts
+var addonOptions2 = {
+  mqttEnabled: process.env.ADDON_MQTT_ENABLED === "true",
+  uiPort: parseInt(process.env.ADDON_UI_PORT || "5000", 10)
+};
 var inHass2 = !!process.env.SUPERVISOR_TOKEN;
 var BOUNDARY = "a very good boundary line";
 var responses = {};
@@ -51834,7 +51829,7 @@ var orientations = [1, 2, 3, 4, 5, 6, 7, 8].reduce((acc, cur) => {
 }, {});
 var cameraName = (id) => config2.cameras[id].alias || id;
 var serveHttp = (port) => {
-  if (inHass2) initializeMqtt();
+  if (inHass2 && addonOptions2.mqttEnabled) initializeMqtt();
   const server = import_node_http.default.createServer((req, res) => {
     var _a2;
     const requestUrl = req.url || "/";
