@@ -52044,143 +52044,31 @@ var serveHttp = (port) => {
           res.end(JSON.stringify({ message: "Discovery started for 10 seconds." }));
         }
         return;
-      }
-      if (requestUrl === "/" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
-        logger.debug(`Rendering main page. Current sessions: ${Object.keys(sessions2).join(", ") || "None"}`);
-        res.setHeader("Content-Type", "text/html");
-        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-        res.setHeader("Pragma", "no-cache");
-        res.setHeader("Expires", "0");
-        res.writeHead(200);
-        res.write(`<!DOCTYPE html><html><head><meta charset="utf-8">`);
-        res.write(`<link rel="shortcut icon" href="${basePath}/favicon.ico">`);
-        res.write(`<title>${inHass ? "Camera Handler" : "All Cameras"}</title>`);
-        res.write(`<style>/* --- Paste your full CSS here --- */
-                body { font-family: sans-serif; margin: 0; background-color: #f4f4f4; color: #333; }
-                body.dark-mode { background-color: #121212; color: #f4f4f4; }
-                header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; color: white; background-color: ${inHass ? "#18bcf2" : "#0078d7"}; }
-                header.dark-mode { background-color: ${inHass ? "#18bcf2" : "#005a9e"}; }
-                header h1 { margin: 0; }
-                header button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
-                header button:hover { opacity: 0.8; }
-                .camera-container { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-                .camera-info { background-color: white; border: 1px solid #ccc; border-radius: 8px; padding: 15px; }
-                .camera-info.dark-mode { background-color: #1e1e1e; border-color: #444; }
-                .info-table { display: flex; flex-direction: column; gap: 8px; }
-                .info-table > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-                .info-title { font-weight: bold; min-width: 50px; }
-                code { font-size: 0.9em; border-radius: 4px; padding: 3px 6px; background-color: #eee; color: #333; border: 1px solid #ccc; }
-                .dark-mode code { background-color: #333; color: #eee; border-color: #555; }
-                .copy-this { cursor: pointer; padding: 3px 6px; font-size: 1.1em; border: 1px solid #ccc; border-radius: 4px; background-color: #f0f0f0; }
-                .dark-mode .copy-this { background-color: #444; border-color: #666; color: #eee; }
-                .badge img { vertical-align: middle; }
-                /* Styles for non-HA view */
-                .camera-item { display: flex; /* ... other styles ... */ }
-                /* ... include all necessary styles ... */
-            </style></head>`);
-        res.write(`<body class="${localStorage.getItem("darkMode") === "true" ? "dark-mode" : ""}"><header>
-                <h1>${inHass ? "Camera Handler" : "All Cameras"}</h1>
-                <div>
-                  <button id="discoverDevices" title="Discover Devices">\uF5D8</button>
-                  <button id="darkModeToggle" title="Toggle Dark Mode">\uF505</button>
-                  ${!inHass ? '<button id="viewToggle" title="Toggle View">\u229E</button>' : ""}
-                </div>
-              </header>
-              <div class="camera-container" id="cameraContainer">`);
-        if (inHass) {
-          res.write(`
-                    <div class="camera-info ${localStorage.getItem("darkMode") === "true" ? "dark-mode" : ""}" style="padding-bottom: 15px; border-bottom: 1px solid #ccc; margin-bottom: 15px;">
-                      Click Discover (\uF5D8) above. For each camera found, copy the URL below (replace <code><HA_HOST_IP></code>) and click the badge <img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="MyHA Badge" style="height: 1.2em; vertical-align: middle;"> to add it manually via the MJPEG integration.
-                    </div>`);
-          if (Object.keys(sessions2).length === 0) {
-            res.write(`<div class="camera-info ${localStorage.getItem("darkMode") === "true" ? "dark-mode" : ""}">No cameras discovered yet. Click Discover.</div>`);
-          } else {
-            Object.keys(sessions2).forEach((id) => {
-              const session = sessions2[id];
-              const urlToCopy = `http://<HA_HOST_IP>:${addonOptions.uiPort}/camera/${id}`;
-              res.write(`
-                            <div class="camera-info ${localStorage.getItem("darkMode") === "true" ? "dark-mode" : ""}">
-                              <div class="info-table">
-                                <div>
-                                  <span class="info-title">${cameraName(id)} (${id})</span>
-                                  <code>${urlToCopy}</code>
-                                  <button class="copy-this" title="Copy URL (replace <HA_HOST_IP>)" data-content="${urlToCopy}">\u{1F4CB}</button>
-                                  <a href="/_my_redirect/config_flow_start?domain=mjpeg" class="my badge" target="_blank" title="Add MJPEG Camera Integration"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Open MJPEG Config Flow"></a>
-                                  <span style="margin-left: auto; font-size: 0.9em;">(IP: ${session.dst_ip})</span>
-                                </div>
-                              </div>
-                            </div>`);
-            });
+      } else if (requestUrl === "/" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
+        logger.debug(`Rendering SIMPLIFIED main page.`);
+        try {
+          res.setHeader("Content-Type", "text/html");
+          res.setHeader("Cache-Control", "no-store");
+          res.writeHead(200);
+          res.write("<!DOCTYPE html><html><head><title>Test Page</title></head><body>");
+          res.write("<h1>Camera Handler Test</h1>");
+          res.write("<p>Server is running.</p>");
+          res.write(`<div>Sessions found: ${Object.keys(sessions2).length}</div>`);
+          res.write("</body></html>");
+          res.end();
+          logger.debug("Simplified page rendered successfully.");
+          return;
+        } catch (renderError) {
+          logger.error(`!!! Error rendering simplified root page: ${renderError.message}
+${renderError.stack}`);
+          if (!res.writableEnded) {
+            if (!res.headersSent) {
+              res.writeHead(500);
+            }
+            res.end("Internal Server Error during render");
           }
-        } else {
-          if (Object.keys(sessions2).length === 0) {
-            res.write(`<div class="camera-info ${localStorage.getItem("darkMode") === "true" ? "dark-mode" : ""}">No cameras discovered yet. Click Discover.</div>`);
-          } else {
-            Object.keys(sessions2).forEach((id) => {
-              const session = sessions2[id];
-              res.write(`
-                          <a href="${basePath}/ui/${id}?friendlyName=${encodeURIComponent(cameraName(id))}" class="camera-item ${localStorage.getItem("darkMode") === "true" ? "dark-mode" : ""}" data-id="${id}">
-                            <img src="${basePath}/camera/${id}" alt="Camera ${cameraName(id)}" style="max-width: 320px; max-height: 240px;" onerror="this.style.display='none'; this.onerror=null;">
-                            <div class="camera-info">
-                              <div class="info-table">
-                                <div><span class="info-title">ID:</span> ${id}</div>
-                                <div><span class="info-title">Name:</span> ${cameraName(id)}</div>
-                                <div><span class="info-title">Label:</span> <span id="friendlyName_${id}">${cameraName(id)}</span><button class="edit-friendly-name" data-id="${id}">\u270E</button></div>
-                                <div><span class="info-title">IP:</span> ${session.dst_ip}</div>
-                              </div>
-                              <div class="grid-name">${cameraName(id)}</div>
-                            </div>
-                          </a>`);
-            });
-          }
+          return;
         }
-        res.write(`</div>`);
-        res.write(`<script>
-                document.querySelectorAll('.copy-this').forEach(button => {
-                  button.addEventListener('click', (e) => {
-                    e.preventDefault(); // Prevent link navigation if button is inside <a>
-                    const content = button.getAttribute('data-content');
-                    navigator.clipboard.writeText(content).then(() => {
-                      console.log('Copied: ' + content);
-                      const originalText = button.textContent;
-                      button.textContent = '\u2705';
-                      setTimeout(() => { button.textContent = originalText; }, 1500);
-                    }).catch(err => { console.error('Copy failed: ', err); });
-                  });
-                });
-                const basePath = "${basePath}";
-                const cameraContainer = document.getElementById('cameraContainer');
-                function applyDarkMode() {
-                    const isDark = document.body.classList.contains('dark-mode');
-                    document.querySelector('header')?.classList.toggle('dark-mode', isDark);
-                    document.querySelectorAll('.camera-info, .camera-item').forEach(item => item.classList.toggle('dark-mode', isDark));
-                }
-                if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); applyDarkMode(); }
-
-                document.getElementById('discoverDevices')?.addEventListener('click', () => {
-                  fetch(\`\${basePath}/discover\`)
-                    .then(response => response.json())
-                    .then(data => { alert(data.message || 'Discovery started.'); /* Consider refreshing page after delay? */ })
-                    .catch(err => { console.error('Error triggering discovery:', err); alert('Failed to start discovery.'); });
-                });
-                document.getElementById('darkModeToggle')?.addEventListener('click', () => {
-                  const isDark = document.body.classList.toggle('dark-mode');
-                  localStorage.setItem('darkMode', isDark);
-                  applyDarkMode();
-                });
-                const viewToggle = document.getElementById('viewToggle');
-                if (viewToggle && cameraContainer) {
-                    viewToggle.addEventListener('click', () => cameraContainer.classList.toggle('grid-view'));
-                    // Add friendly name logic only if not in Hass
-                     if (!${inHass}) {
-                        document.querySelectorAll('.camera-item').forEach(item => { /* ... friendly name load logic ... */ });
-                        document.querySelectorAll('.edit-friendly-name').forEach(button => { /* ... friendly name edit logic ... */ });
-                     }
-                }
-              </script>`);
-        res.write(`</body></html>`);
-        res.end();
-        return;
       } else {
         logger.warn(`Unhandled route requested: ${req.method} ${requestUrl}`);
         res.writeHead(404, { "Content-Type": "text/plain" });
