@@ -51376,7 +51376,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.50",
+  version: "0.0.51",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -52057,17 +52057,19 @@ var serveHttp = (port) => {
         }
         return;
       }
-      if (requestUrl === "/" || basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
-        logger.debug(`Routing to / (root) handler for ${requestUrl}`);
+      if (requestUrl === "/" || requestUrl === "//" || // Handle double slash from Ingress explicitly
+      basePath && requestUrl === basePath || basePath && requestUrl === `${basePath}/`) {
+        logger.debug(`Routing to / (root) handler for request path: "${requestUrl}"`);
         logger.debug(`Rendering SIMPLIFIED main page.`);
         try {
           res.setHeader("Content-Type", "text/html");
           res.setHeader("Cache-Control", "no-store");
           res.writeHead(200);
-          res.write("<!DOCTYPE html><html><head><title>Test Page (Ingress)</title></head><body>");
-          res.write("<h1>Camera Handler Test (Via Ingress)</h1>");
+          res.write("<!DOCTYPE html><html><head><title>Test Page (Root)</title></head><body>");
+          res.write("<h1>Camera Handler Test (Root)</h1>");
           res.write("<p>Server is running.</p>");
           res.write(`<div>Sessions found: ${Object.keys(sessions2).length}</div>`);
+          res.write(`<div>Request URL: ${requestUrl}</div>`);
           res.write(`<div>Base Path Detected: '${basePath}'</div>`);
           res.write("</body></html>");
           res.end();
@@ -52084,10 +52086,11 @@ ${renderError.stack}`);
           }
           return;
         }
+      } else {
+        logger.warn(`No route matched for: ${method} ${requestUrl} (BasePath: '${basePath}')`);
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("Not Found");
       }
-      logger.warning(`No route matched for: ${method} ${requestUrl} (BasePath: '${basePath}')`);
-      res.writeHead(404, { "Content-Type": "text/plain" });
-      res.end("Not Found");
     } catch (routeError) {
       logger.error(`Error handling route ${requestUrl}: ${routeError.message}
 ${routeError.stack}`);
