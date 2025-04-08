@@ -51369,7 +51369,7 @@ To add it manually:
 // package.json
 var package_default = {
   type: "module",
-  version: "0.0.62",
+  version: "0.0.63",
   scripts: {
     test: "mocha tests",
     tsc: "tsc",
@@ -51405,7 +51405,7 @@ var addonOptions = {
   logLevel: process.env.ADDON_LOG_LEVEL || "info"
 };
 if (isNaN(addonOptions.uiPort) || addonOptions.uiPort <= 0 || addonOptions.uiPort > 65535) {
-  logger.warn(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
+  logger.warning(`Invalid UI Port from env (${process.env.ADDON_UI_PORT}). Falling back to 5000.`);
   addonOptions.uiPort = 5e3;
 }
 logger.info(`Addon Options Resolved: MQTT=${addonOptions.mqttEnabled}, Port=${addonOptions.uiPort}, LogLevel=${addonOptions.logLevel}`);
@@ -51465,7 +51465,7 @@ var handleDeviceDiscovered = (rinfo, dev) => {
     const mqttClient = getMqttClient();
     if (mqttClient == null ? void 0 : mqttClient.connected) {
     } else {
-      logger.warn(`MQTT enabled but client not connected for ${safeDevId}.`);
+      logger.warning(`MQTT enabled but client not connected for ${safeDevId}.`);
     }
   } else if (inHass) {
     logger.debug(`MQTT disabled, skipping for ${safeDevId}.`);
@@ -51654,13 +51654,13 @@ ${uiRenderError.stack}`);
         const devId = requestUrl.split("/")[isIngressRequest ? 5 : 2];
         const s = sessions2[devId];
         if (!s) {
-          logger.warn(`Stream requested for unknown session: ${devId}`);
+          logger.warning(`Stream requested for unknown session: ${devId}`);
           res.writeHead(404);
           res.end("Camera not found");
           return;
         }
         if (!s.connected) {
-          logger.warn(`Stream requested for offline session: ${devId}`);
+          logger.warning(`Stream requested for offline session: ${devId}`);
           res.writeHead(503);
           res.end("Camera offline");
           return;
@@ -51691,7 +51691,7 @@ ${uiRenderError.stack}`);
       if (requestUrl === `${basePath}/discover` || !basePath && requestUrl === "/discover") {
         logger.info("Discovery triggered via /discover endpoint.");
         if (activeDiscoveryEmitter) {
-          logger.warn("Discovery already running.");
+          logger.warning("Discovery already running.");
           res.writeHead(409, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ message: "Discovery already in progress." }));
         } else {
@@ -51808,7 +51808,7 @@ ${renderError.stack}`);
           return;
         }
       } else {
-        logger.warn(`No route matched for: ${method} ${requestUrl}`);
+        logger.warning(`No route matched for: ${method} ${requestUrl}`);
         res.writeHead(404);
         res.end("Not Found");
       }
@@ -51847,7 +51847,7 @@ ${routeError.stack}`);
         process.exit(0);
       });
       setTimeout(() => {
-        logger.warn("Graceful shutdown timed out. Forcing exit.");
+        logger.warning("Graceful shutdown timed out. Forcing exit.");
         process.exit(1);
       }, 5e3);
     } else {
