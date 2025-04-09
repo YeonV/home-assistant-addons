@@ -1,44 +1,52 @@
 name: mDNS Advertiser
-version: "0.0.12"
+version: "0.0.13"
 slug: mdns_advertiser
-description: Selectively advertises HA services via mDNS on a specific interface
-url: "https://github.com/YeonV/home-assistant-addons/tree/main/mdns-advertiser" # Update with your repo URL
+description: Selectively advertises specified HA entities via mDNS
+url: "https://github.com/YeonV/home-assistant-addons/tree/main/mdns-advertiser"
 arch:
   - aarch64
   - amd64
-  # - armhf
   - armv7
 init: false
-homeassistant_api: true # Needed to get Home Assistant token & access internal API
-hassio_api: true # Needed to get Supervisor token & access internal API
-hassio_role: manager # Standard role sufficient for API access
+hassio_api: true
+hassio_role: default
+image: ghcr.io/yeonv/{arch}-addon-mdns_advertiser
 options:
   interface: "eth0"
   update_interval: 300
   log_level: "info"
-  services: [] # Default to empty list
+  services: []
+  # --- NEW: Optional test device input ---
+  test_device: null # Default to null/not set
+  # --- END NEW ---
 schema:
   interface: str
   update_interval: int(60,)
   log_level: list(trace|debug|info|notice|warning|error|fatal)
+  # --- NEW: Optional test device input ---
+  test_device: device? # Optional device selector
+  # --- END NEW ---
   services: # List of service rules
-    - name: str # User-friendly name for this rule
+    - name: str
       enabled: bool? # Optional, default true
-      # --- NEW: Specify entities directly ---
-      entities: # List of entity IDs to advertise
-        - str
-      # --- END NEW ---
+      # --- Filtering Options (Specify ONE, or defaults apply) ---
+      ha_integration: str?
+      ha_domain: str?
+      ha_entity_pattern: str? # Default: "sensor.*_ip" if no other filter given
+      # --- Optional direct entities list (for logging only now) ---
+      entities: # Optional list of entity IDs
+        - str?
+      # --- End Filtering ---
       service_type: str # mDNS service type (_wled._tcp)
       service_port: int(1,65535) # mDNS service port (80)
-      # --- NEW: Source Selection ---
-      ip_source: list(state|attribute)? # Default: attribute
+      # --- Source Selection ---
+      ip_source: list(state|attribute)? # Default: state
       ip_attribute: str? # Required if ip_source is 'attribute'
       name_source: list(attribute|entity_id)? # Default: attribute
       name_attribute: str? # Required if name_source is 'attribute', default 'friendly_name'
-      # --- END NEW ---
+      # --- End Source Selection ---
       filter_by_state: str? # Optional: state value to filter OUT (e.g., "unavailable")
       filter_by_state_inverse: bool? # Optional: set true to KEEP states NOT matching filter_by_state (default false)
       # txt_records: # Optional complex structure
       #   - key: str
       #     attribute: str
-image: ghcr.io/yeonv/{arch}-addon-mdns_advertiser
