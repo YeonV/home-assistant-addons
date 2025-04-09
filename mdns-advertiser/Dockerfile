@@ -7,7 +7,7 @@ FROM ${BUILD_FROM}
 # jq is needed to parse JSON response
 RUN apk add --no-cache \
     bash \
-    avahi-utils \
+    avahi \
     curl \
     jq \
     coreutils
