@@ -81,7 +81,7 @@ while true; do
 
     bashio::log.debug "Received HTTP Status: ${http_status}"
     # Log the first few characters of the response for inspection
-    bashio::log.debug "Received Response Body: $(echo "$states_json" | head -c 400)"
+    bashio::log.debug "Received Response Body (first 400 chars): $(echo "$states_json" | head -c 400)"
 
     # Check HTTP status code explicitly
     if [[ "$http_status" -ne 200 ]]; then
@@ -114,7 +114,7 @@ while true; do
     # Loop through each configured service rule
     for i in $(seq 0 $((num_services - 1))); do
         # --- LOG ENTRY INTO LOOP ITERATION ---
-        bashio::log.info "--- Processing Service Index: ${i} ---"
+        bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
         # --- END LOG ENTRY ---
 
         # --- READ CONFIG VALUES ONE BY ONE WITH LOGGING ---
@@ -132,14 +132,18 @@ while true; do
         bashio::log.debug "Reading ha_integration..."
         ha_integration=$(bashio::config "services[${i}].ha_integration")
         bashio::log.debug "Raw ha_integration: '${ha_integration}'"
+        # Handle potential null from bashio::config explicitly for string vars
+        [[ "$ha_integration" == "null" ]] && ha_integration=""
 
         bashio::log.debug "Reading ha_domain..."
         ha_domain=$(bashio::config "services[${i}].ha_domain")
         bashio::log.debug "Raw ha_domain: '${ha_domain}'"
+        [[ "$ha_domain" == "null" ]] && ha_domain=""
 
         bashio::log.debug "Reading ha_entity_pattern..."
         ha_entity_pattern=$(bashio::config "services[${i}].ha_entity_pattern")
         bashio::log.debug "Raw ha_entity_pattern: '${ha_entity_pattern}'"
+        [[ "$ha_entity_pattern" == "null" ]] && ha_entity_pattern=""
 
         bashio::log.debug "Reading service_type..."
         service_type=$(bashio::config "services[${i}].service_type")
@@ -153,12 +157,14 @@ while true; do
         ip_attribute=$(bashio::config "services[${i}].ip_attribute")
         bashio::log.debug "Raw ip_attribute: '${ip_attribute}'"
 
+        # TODO: Read TXT records config here if implementing
+
         # --- END READ CONFIG VALUES ---
         bashio::log.info "Successfully read all config values for index ${i}."
 
         # Basic validation after reading all
         if [[ -z "$service_name" ]] || [[ -z "$service_type" ]] || [[ -z "$service_port" ]] || [[ -z "$ip_attribute" ]]; then
-            bashio::log.warning "Required configuration field missing/empty for service index ${i}. Skipping."
+            bashio::log.warning "Required configuration field missing/empty for service index ${i} (name, type, port, ip_attribute). Skipping."
             continue
         fi
 
@@ -169,12 +175,125 @@ while true; do
 
         bashio::log.debug "Processing enabled service: ${service_name}"
 
-        # --- Construct jq filter ---
-        # ... (rest of the script: construct filter, filter entities, transform, process) ...
+        # --- ADD MARKER 1 ---
+        bashio::log.info "[MARKER 1] Constructing filter..."
+        # Construct jq filter based on provided criteria
+        jq_filter='.'
+        if [[ -n "$ha_integration" ]]; then
+            bashio::log.debug "Using filter: integration = ${ha_integration}"
+            jq_filter+=" | select(.attributes.integration == \"${ha_integration}\")"
+        elif [[ -n "$ha_domain" ]]; then
+            bashio::log.debug "Using filter: domain = ${ha_domain}."
+            jq_filter+=" | select(.entity_id | startswith(\"${ha_domain}.\"))"
+        elif [[ -n "$ha_entity_pattern" ]]; then
+            bashio::log.debug "Using filter: entity pattern = ${ha_entity_pattern}"
+            # Simple prefix matching for now - adjust if needed for more complex patterns
+            # Remove potential trailing wildcard for startswith
+            pattern_prefix="${ha_entity_pattern%\*}"
+            jq_filter+=" | select(.entity_id | startswith(\"${pattern_prefix}\"))"
+        else
+            bashio::log.warning "No filter criteria (integration, domain, or pattern) defined for service '${service_name}'. Skipping."
+            continue
+        fi
+        # Ensure ip_attribute is correctly escaped if it contains special chars (unlikely for 'ip_address')
+        jq_filter+=" | select(.attributes.\"${ip_attribute}\" != null)"
+        bashio::log.debug "Constructed jq filter: ${jq_filter}"
+
+        # --- ADD MARKER 2 ---
+        bashio::log.info "[MARKER 2] Starting STEP 1: Filter Only..."
+        # --- STEP 1: Filter Only ---
+        bashio::log.debug "Attempting to filter entities..."
+        # Use process substitution to avoid issues with large states_json? Safer.
+        filtered_entities_json=$(jq -c ".[] | ${jq_filter}" <<< "$states_json")
+        filter_exit_code=$? # Capture exit code of jq
+
+        if [[ $filter_exit_code -ne 0 ]]; then
+            bashio::log.error "JQ filtering failed with exit code ${filter_exit_code}!"
+            bashio::log.debug "Filter was: ${jq_filter}"
+            bashio::log.debug "Input JSON start (first 200 chars): $(echo "$states_json" | head -c 200)"
+            continue # Skip to next service rule
+        fi
+
+        # Check if any entities were found
+        if [[ -z "$filtered_entities_json" ]]; then
+            bashio::log.info "No entities matched the filter for service '${service_name}'."
+            continue # Move to the next service rule
+        fi
+        bashio::log.debug "Filtering successful. Filtered entities (first 500 chars): $(echo "$filtered_entities_json" | head -c 500)"
+
+        # --- ADD MARKER 3 ---
+        bashio::log.info "[MARKER 3] Starting STEP 2: Transform Filtered Entities..."
+        # --- STEP 2: Transform Filtered Entities ---
+        transformed_output=""
+        # Use process substitution again for safety
+        while IFS= read -r single_entity_json; do
+            # Feed one entity JSON object at a time to the transformation jq
+            current_transformed=$(jq -c "{name: .attributes.friendly_name // .entity_id, ip: .attributes.\"${ip_attribute}\"}" <<< "$single_entity_json")
+            transform_exit_code=$?
+            if [[ $transform_exit_code -ne 0 ]]; then
+                bashio::log.error "JQ transformation failed with exit code ${transform_exit_code} for one entity!"
+                bashio::log.debug "Problematic filtered entity JSON: ${single_entity_json}"
+                # Log and skip this problematic entity
+                continue
+            fi
+            # Append successful transformation to overall output, separated by newline
+            transformed_output+="${current_transformed}"$'\n'
+        done <<< "$filtered_entities_json" # Pipe filtered JSON line by line
+
+        # Check if any transformations succeeded
+        if [[ -z "$transformed_output" ]]; then
+            bashio::log.warning "Transformation resulted in empty output, although filtering found entities. Check transformation logic or entity data."
+            continue # Move to the next service rule
+        fi
+        bashio::log.debug "Transformation successful."
+
+
+        # --- ADD MARKER 4 ---
+        bashio::log.info "[MARKER 4] Starting STEP 3: Processing Loop..."
+        # --- STEP 3: Pipe to the processing loop ---
+        # Use printf to avoid issues with echo interpretation and trailing newline
+        # Process the transformed output line by line
+        printf "%s" "$transformed_output" | while IFS= read -r entity_info; do
+            # Check if line is empty (can happen with printf if input was empty despite earlier check)
+            if [[ -z "$entity_info" ]]; then continue; fi
+
+            bashio::log.debug "Processing entity_info line: ${entity_info}"
+
+            # Use <<< (here string) for safety feeding variable to jq
+            entity_name=$(jq -r '.name' <<< "$entity_info")
+            name_exit_code=$?
+            entity_ip=$(jq -r '.ip' <<< "$entity_info")
+            ip_exit_code=$?
+
+            if [[ $name_exit_code -ne 0 ]] || [[ $ip_exit_code -ne 0 ]]; then
+                 bashio::log.error "Inner JQ extraction failed (Name EC: ${name_exit_code}, IP EC: ${ip_exit_code}). Entity Info: ${entity_info}"
+                 continue
+            fi
+
+            bashio::log.debug "Extracted Name: '${entity_name}', Extracted IP: '${entity_ip}'"
+
+            if [[ -z "$entity_name" ]] || [[ -z "$entity_ip" ]]; then
+                bashio::log.warning "Could not extract name or IP within loop (result was empty). Info: ${entity_info}"
+                continue
+            fi
+
+            # --- TODO: Implement TXT Record extraction and assembly here ---
+            # Example: txt_records_array=("key1=val1" "key2=val2")
+            # Then pass "${txt_records_array[@]}" to publish_service
+
+            # Publish the service
+            publish_service "${IFACE}" "${entity_name}" "${service_type}" "${service_port}" "${entity_ip}" # Add TXT args here
+
+        done # End of processing entities for one service rule
+        bashio::log.info "[MARKER 5] Finished STEP 3 processing loop."
+
+        # --- ADD MARKER 6 ---
+        bashio::log.info "[MARKER 6] Reached end of FOR loop iteration for index ${i}."
 
     done # End of looping through service rules
 
-
+    # --- ADD MARKER 7 ---
+    bashio::log.info "[MARKER 7] Exited FOR loop."
     bashio::log.debug "Update cycle finished. Sleeping for ${UPDATE_INTERVAL} seconds."
     sleep "${UPDATE_INTERVAL}"
-done
+done # End while true
