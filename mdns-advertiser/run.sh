@@ -21,7 +21,9 @@ publish_service() {
 # ==============================================================================
 # Main Script Logic
 # ==============================================================================
-bashio::log.info "Starting mDNS Advertiser..."
+ADDON_NAME=$(bashio::addon.name)
+ADDON_VERSION=$(bashio::addon.version)
+bashio::log.info "Starting ${ADDON_NAME} v${ADDON_VERSION}..."
 
 # Validate SUPERVISOR_TOKEN & interface
 if ! bashio::config.exists 'interface'; then bashio::log.fatal "Config 'interface' missing."; exit 1; fi
@@ -141,12 +143,9 @@ while true; do
 
         # Apply state filter
         if [[ -n "$filter_state" ]]; then
-            # Simplified logging
-            local op_str="=="
-            if [[ "$filter_inverse" == "true" ]]; then op_str="!="; fi
+            op_str="=="; [[ "$filter_inverse" == "true" ]] && op_str="!="
             bashio::log.debug "Adding state filter: state ${op_str} '${filter_state}'"
-            # Actual filter logic
-            local op="=="; [[ "$filter_inverse" == "true" ]] && op="!="
+            op="=="; [[ "$filter_inverse" == "true" ]] && op="!="
             jq_filter+=" | select(.state ${op} \"${filter_state}\")"
         fi
 
@@ -173,7 +172,7 @@ while true; do
         echo "$filtered_entities_json" | jq -c '.[]' | while IFS= read -r entity_state_json; do
             bashio::log.trace "Rule[${i}] Processing filtered entity JSON: ${entity_state_json}"
 
-            # --- Extract Name - REMOVED 'local' ---
+            # --- Extract Name ---
             target_friendly_name="" # Initialize
             if [[ "$name_source" == "entity_id" ]]; then
                 target_friendly_name=$(jq -r '.entity_id' <<< "$entity_state_json")
@@ -181,7 +180,7 @@ while true; do
                 target_friendly_name=$(jq -r ".attributes.\"${name_attribute}\" // .entity_id" <<< "$entity_state_json")
             fi
 
-            # --- Extract IP - REMOVED 'local' ---
+            # --- Extract IP ---
             entity_ip="" # Initialize
             if [[ "$ip_source" == "state" ]]; then
                 entity_ip=$(jq -r '.state' <<< "$entity_state_json")
