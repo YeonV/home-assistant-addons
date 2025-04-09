@@ -5,9 +5,9 @@
 [![Contributor Covenant][coc-shield]][coc]
 
 <!-- Shield Configuration -->
-[releases-shield]: https://img.shields.io/github/release/YeonV/addon-mdns-advertiser.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/YeonV/mdns-advertiser.svg?style=for-the-badge
 [releases]: https://github.com/YeonV/home-assistant-addons/releases
-[license-shield]: https://img.shields.io/github/license/YeonV/addon-mdns-advertiser.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/YeonV/mdns-advertiser.svg?style=for-the-badge
 [license]: https://github.com/YeonV/home-assistant-addons/blob/main/mdns-advertiser/LICENSE
 [coc-shield]: https://img.shields.io/badge/Contributor%20Covenant-v2.1-ff69b4.svg?style=for-the-badge
 [coc]: https://github.com/YeonV/home-assistant-addons/blob/main/mdns-advertiser/CODE_OF_CONDUCT.md
