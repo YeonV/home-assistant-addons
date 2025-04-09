@@ -10,7 +10,8 @@ RUN apk add --no-cache \
     avahi \
     curl \
     jq \
-    coreutils
+    coreutils \
+    busybox-extras
 
 # Copy run script
 COPY run.sh /

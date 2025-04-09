@@ -5,13 +5,21 @@
 # ==============================================================================
 HA_API_URL="http://supervisor/core/api"
 publish_service() {
-    # Using 'local' here is CORRECT as it's inside a function
     local interface="$1"; local name="$2"; local type="$3"; local port="$4"; local ip="$5"; shift 5
     local txt_args=(); for txt in "$@"; do txt_args+=("$(printf '%q' "$txt")"); done
 
     bashio::log.debug "Publishing: Name='${name}', Type='${type}', Port=${port}, IP=${ip}, TXT='${txt_args[*]}' on Interface='${interface}'"
-    if avahi-publish --interface "$(printf '%q' "$interface")" --subtype _home-assistant._sub."${type}" -a -R \
-        "$(printf '%q' "$name")" "$(printf '%q' "$type")" "$port" "ip=${ip}" "${txt_args[@]}" >/dev/null 2>&1; then
+    # --- TEMPORARILY REMOVED --subtype argument ---
+    if avahi-publish \
+        --interface "$(printf '%q' "$interface")" \
+        -a \
+        -R \
+        "$(printf '%q' "$name")" \
+        "$(printf '%q' "$type")" \
+        "$port" \
+        "ip=${ip}" \
+        "${txt_args[@]}" >/dev/null 2>&1; then
+    # --- END TEMPORARY REMOVAL ---
         bashio::log.trace "Successfully published '${name}' (${ip})"
     else
         bashio::log.warning "Failed to publish '${name}' (${ip})"
@@ -70,7 +78,7 @@ while true; do
 
     for i in $(seq 0 $((num_services - 1))); do
         bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
-
+        set -x 
         # --- Extract config for this index using jq ---
         current_service_config=$(echo "$services_config_json" | jq -c ".[${i}]") # Get the object for index i
 
@@ -95,7 +103,9 @@ while true; do
         # --- Log optional entities list if present ---
         user_provided_entities=() # Bash array to store validated entity IDs from config
         log_user_entities=false
+        
         if bashio::config.exists "services[${i}].entities"; then
+
             entities_json="$(bashio::config "services[${i}].entities")" # Read the list again if needed, or use variable from above
             if echo "$entities_json" | jq -e '. | type == "array" and length > 0' > /dev/null; then
                 bashio::log.notice "Rule[${i}] Optional 'entities' list provided in config: ${entities_json}"
@@ -134,6 +144,7 @@ while true; do
             ha_entity_pattern="sensor.*_ip"
             use_default_pattern=true
         fi
+        set +x
 
         # --- Log optional entities list if present ---
         if bashio::config.exists "services[${i}].entities"; then
@@ -205,18 +216,23 @@ while true; do
         echo "$filtered_entities_json" | jq -c '.[]' | while IFS= read -r entity_state_json; do
             bashio::log.trace "Rule[${i}] Processing filtered entity JSON: ${entity_state_json}"
 
-            # --- Extract Name ---
-            target_friendly_name=""
-            if [[ "$name_source" == "entity_id" ]]; then
-                target_friendly_name=$(jq -r '.entity_id' <<< "$entity_state_json")
-            else # Default attribute
-                target_friendly_name=$(jq -r ".attributes.\"${name_attribute}\" // .entity_id" <<< "$entity_state_json")
-            fi
+           # --- Debug and Trim Name ---
+            bashio::log.debug "Name before trimming: '${target_friendly_name}'"
+            # Log hex representation to check for weird spaces
+            bashio::log.trace "Name before trimming (hex): $(printf '%s' "$target_friendly_name" | xxd -p)"
 
-            # --- NEW: Remove trailing " IP" ---
-            # Use bash parameter expansion: ${variable%pattern} removes shortest match of pattern from end
-            original_name_for_log="$target_friendly_name" # Keep original for logging if needed
-            target_friendly_name="${target_friendly_name% IP}"
+            original_name_for_log="$target_friendly_name"
+            target_friendly_name="${target_friendly_name% IP}" # Attempt trimming
+
+            bashio::log.debug "Name AFTER trimming: '${target_friendly_name}'"
+            bashio::log.trace "Name AFTER trimming (hex): $(printf '%s' "$target_friendly_name" | xxd -p)"
+
+            if [[ "$original_name_for_log" == "$target_friendly_name" ]]; then
+                bashio::log.debug "Trimming ' IP' had NO effect on the name."
+            else
+                bashio::log.info "Successfully trimmed ' IP' from name. Original: '${original_name_for_log}'"
+            fi
+            # --- End Debug and Trim ---
             # Log if changed
             if [[ "$original_name_for_log" != "$target_friendly_name" ]]; then
                 bashio::log.trace "Rule[${i}] Removed trailing ' IP' from name. Original: '${original_name_for_log}', New: '${target_friendly_name}'"
