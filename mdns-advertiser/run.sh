@@ -60,32 +60,67 @@ while true; do
     bashio::log.debug "Found ${num_services} service configurations."
 
     for i in $(seq 0 $((num_services - 1))); do
-        # --- Read Service Config - REMOVED 'local' ---
         bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
 
+        # --- Read ALL raw values first ---
+        service_name_raw="$(bashio::config "services[${i}].name")"
+        service_enabled_raw="$(bashio::config "services[${i}].enabled")"
+        service_type_raw="$(bashio::config "services[${i}].service_type")"
+        service_port_raw="$(bashio::config "services[${i}].service_port")"
+        ip_source_raw="$(bashio::config "services[${i}].ip_source")" # No default here yet
+        ip_attribute_raw="$(bashio::config "services[${i}].ip_attribute")"
+        name_source_raw="$(bashio::config "services[${i}].name_source")" # No default here yet
+        name_attribute_raw="$(bashio::config "services[${i}].name_attribute")" # No default here yet
+        filter_state_raw="$(bashio::config "services[${i}].filter_by_state")"
+        filter_inverse_raw="$(bashio::config "services[${i}].filter_by_state_inverse")"
+        ha_integration_raw="$(bashio::config "services[${i}].ha_integration")"
+        ha_domain_raw="$(bashio::config "services[${i}].ha_domain")"
+        ha_entity_pattern_raw="$(bashio::config "services[${i}].ha_entity_pattern")"
+
+        # --- Process values, apply defaults, handle nulls ---
+        service_name="$service_name_raw"
+        service_enabled="true"; [[ "$service_enabled_raw" == "false" ]] && service_enabled="false"
+        service_type="$service_type_raw"
+        service_port="$service_port_raw"
+        ip_source="$ip_source_raw"; [[ -z "$ip_source" || "$ip_source" == "null" ]] && ip_source="state"
+        ip_attribute="$ip_attribute_raw"; [[ "$ip_attribute" == "null" ]] && ip_attribute=""
+        name_source="$name_source_raw"; [[ -z "$name_source" || "$name_source" == "null" ]] && name_source="attribute"
+        name_attribute="$name_attribute_raw"; [[ -z "$name_attribute" || "$name_attribute" == "null" ]] && name_attribute="friendly_name"
+        filter_state="$filter_state_raw"; [[ "$filter_state" == "null" ]] && filter_state=""
+        filter_inverse="false"; [[ "$filter_inverse_raw" == "true" ]] && filter_inverse="true"
+        ha_integration="$ha_integration_raw"; [[ "$ha_integration" == "null" ]] && ha_integration=""
+        ha_domain="$ha_domain_raw"; [[ "$ha_domain" == "null" ]] && ha_domain=""
+        ha_entity_pattern="$ha_entity_pattern_raw"; [[ "$ha_entity_pattern" == "null" ]] && ha_entity_pattern=""
+
+        # --- Now apply default pattern logic ---
+        use_default_pattern=false
         if [[ -z "$ha_integration" && -z "$ha_domain" && -z "$ha_entity_pattern" ]]; then
             bashio::log.debug "Rule[${i}] No filter specified, using default pattern 'sensor.*_ip'."
             ha_entity_pattern="sensor.*_ip"
             use_default_pattern=true
         fi
 
-        # Log optional entities list if present
+        # --- Log optional entities list if present ---
         if bashio::config.exists "services[${i}].entities"; then
-            entities_json=$(bashio::config "services[${i}].entities")
+            entities_json="$(bashio::config "services[${i}].entities")"
              if echo "$entities_json" | jq -e '. | type == "array" and length > 0' > /dev/null; then
                 bashio::log.notice "Rule[${i}] Optional 'entities' list provided (logging only): ${entities_json}"
              fi
         fi
 
+        # --- Log final processed values ---
         bashio::log.debug "Rule[${i}] Name: '${service_name}', Enabled: ${service_enabled}"
-        # ... (log other read configs) ...
+        bashio::log.debug "Rule[${i}] Service Type: ${service_type}, Port: ${service_port}"
+        bashio::log.debug "Rule[${i}] IP Source: ${ip_source}, IP Attr: '${ip_attribute}'"
+        bashio::log.debug "Rule[${i}] Name Source: ${name_source}, Name Attr: '${name_attribute}'"
+        bashio::log.debug "Rule[${i}] State Filter: '${filter_state}', Inverse: ${filter_inverse}"
         bashio::log.debug "Rule[${i}] Filter Used: Integration='${ha_integration}', Domain='${ha_domain}', Pattern='${ha_entity_pattern}' (Default applied: ${use_default_pattern})"
 
         # --- Validation & Skip Checks ---
         if [[ "$service_enabled" != "true" ]]; then bashio::log.debug "Rule[${i}] Skipping disabled service."; continue; fi
         # ... (other validation checks) ...
 
-        # --- Construct JQ Filter ---
+        # --- Construct JQ Filter (using the PROCESSED variables) ---
         bashio::log.info "[MARKER 1] Constructing filter..."
         jq_filter='.' # Start with all entities
 
