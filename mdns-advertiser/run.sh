@@ -67,19 +67,19 @@ bashio::log.info "Update interval: ${UPDATE_INTERVAL} seconds"
 while true; do
     bashio::log.debug "Starting update cycle..."
     # ... (Fetch states_json and devices_json) ...
-    bashio::log.debug "Attempting to fetch devices from API: ${HA_API_URL}/devices"
-    devices_response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET \
-        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-        -H "Content-Type: application/json" \
-        "${HA_API_URL}/devices")
-    devices_status=$(echo "$devices_response" | grep HTTP_STATUS | cut -d':' -f2)
-    devices_json=$(echo "$devices_response" | sed '$d')
-    if [[ "$devices_status" -ne 200 ]] || ! echo "$devices_json" | jq -e . > /dev/null; then
-        bashio::log.error "Failed to fetch or parse /api/devices (HTTP: ${devices_status}). Skipping cycle."
-        sleep "${UPDATE_INTERVAL}"
-        continue
-    fi
-    bashio::log.debug "Successfully fetched and parsed /api/devices."
+    # bashio::log.debug "Attempting to fetch devices from API: ${HA_API_URL}/devices"
+    # devices_response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET \
+    #     -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+    #     -H "Content-Type: application/json" \
+    #     "${HA_API_URL}/devices")
+    # devices_status=$(echo "$devices_response" | grep HTTP_STATUS | cut -d':' -f2)
+    # devices_json=$(echo "$devices_response" | sed '$d')
+    # if [[ "$devices_status" -ne 200 ]] || ! echo "$devices_json" | jq -e . > /dev/null; then
+    #     bashio::log.error "Failed to fetch or parse /api/devices (HTTP: ${devices_status}). Skipping cycle."
+    #     sleep "${UPDATE_INTERVAL}"
+    #     continue
+    # fi
+    # bashio::log.debug "Successfully fetched and parsed /api/devices."
 
     bashio::log.debug "Attempting to fetch states from API: ${HA_API_URL}/states"
 
@@ -156,53 +156,55 @@ for i in $(seq 0 $((num_services - 1))); do
         fi
         bashio::log.debug "Found IP Sensor: ${sensor_entity_id} with IP: ${entity_ip}"
 
-        # --- Find Device ID using Sensor Entity ID ---
-        bashio::log.debug "Searching for Device ID for sensor ${sensor_entity_id}..."
-        # JQ query to find the device containing this sensor entity_id
-        device_id=$(jq -r --arg sensor_id "$sensor_entity_id" \
-            '.[] | select(.entities[]?.entity_id == $sensor_id) | .id | first' \
-            <<< "$devices_json") # Use 'first' in case of weird duplicates
+        # # --- Find Device ID using Sensor Entity ID ---
+        # bashio::log.debug "Searching for Device ID for sensor ${sensor_entity_id}..."
+        # # JQ query to find the device containing this sensor entity_id
+        # device_id=$(jq -r --arg sensor_id "$sensor_entity_id" \
+        #     '.[] | select(.entities[]?.entity_id == $sensor_id) | .id | first' \
+        #     <<< "$devices_json") # Use 'first' in case of weird duplicates
 
-        if [[ -z "$device_id" ]] || [[ "$device_id" == "null" ]]; then
-            bashio::log.warning "Could not find Device ID for sensor ${sensor_entity_id}. Using sensor name as fallback."
-            target_friendly_name="$sensor_friendly_name" # Fallback name
-        else
-            bashio::log.debug "Found Device ID: ${device_id}"
+        # if [[ -z "$device_id" ]] || [[ "$device_id" == "null" ]]; then
+        #     bashio::log.warning "Could not find Device ID for sensor ${sensor_entity_id}. Using sensor name as fallback."
+        #     target_friendly_name="$sensor_friendly_name" # Fallback name
+        # else
+        #     bashio::log.debug "Found Device ID: ${device_id}"
 
-            # --- Find Light Entity ID using Device ID ---
-            bashio::log.debug "Searching for light entity for Device ID ${device_id}..."
-            # JQ query to find the first entity starting with 'light.' within that device
-            light_entity_id=$(jq -r --arg dev_id "$device_id" \
-                '.[] | select(.id == $dev_id) | .entities[]? | select(.entity_id? | startswith("light.")) | .entity_id | first' \
-                <<< "$devices_json")
+        #     # --- Find Light Entity ID using Device ID ---
+        #     bashio::log.debug "Searching for light entity for Device ID ${device_id}..."
+        #     # JQ query to find the first entity starting with 'light.' within that device
+        #     light_entity_id=$(jq -r --arg dev_id "$device_id" \
+        #         '.[] | select(.id == $dev_id) | .entities[]? | select(.entity_id? | startswith("light.")) | .entity_id | first' \
+        #         <<< "$devices_json")
 
-            if [[ -z "$light_entity_id" ]] || [[ "$light_entity_id" == "null" ]]; then
-                bashio::log.warning "Could not find light entity for Device ID ${device_id}. Using sensor name as fallback."
-                target_friendly_name="$sensor_friendly_name" # Fallback name
-            else
-                bashio::log.debug "Found Light Entity ID: ${light_entity_id}"
+        #     if [[ -z "$light_entity_id" ]] || [[ "$light_entity_id" == "null" ]]; then
+        #         bashio::log.warning "Could not find light entity for Device ID ${device_id}. Using sensor name as fallback."
+        #         target_friendly_name="$sensor_friendly_name" # Fallback name
+        #     else
+        #         bashio::log.debug "Found Light Entity ID: ${light_entity_id}"
 
-                # --- Get Light Entity's Friendly Name from States ---
-                bashio::log.debug "Looking up state for light ${light_entity_id}..."
-                # JQ query to find the state object for the light entity
-                light_state_json=$(jq -c --arg light_id "$light_entity_id" \
-                    '.[] | select(.entity_id == $light_id)' \
-                    <<< "$states_json")
+        #         # --- Get Light Entity's Friendly Name from States ---
+        #         bashio::log.debug "Looking up state for light ${light_entity_id}..."
+        #         # JQ query to find the state object for the light entity
+        #         light_state_json=$(jq -c --arg light_id "$light_entity_id" \
+        #             '.[] | select(.entity_id == $light_id)' \
+        #             <<< "$states_json")
 
-                if [[ -z "$light_state_json" ]] || [[ "$light_state_json" == "null" ]]; then
-                     bashio::log.warning "Could not find state for light entity ${light_entity_id}. Using sensor name as fallback."
-                     target_friendly_name="$sensor_friendly_name" # Fallback name
-                else
-                    # Extract friendly name with fallback to entity_id
-                    target_friendly_name=$(jq -r '.attributes.friendly_name // .entity_id' <<< "$light_state_json")
-                    bashio::log.debug "Using friendly name from light entity: '${target_friendly_name}'"
-                fi
-            fi
-        fi
+        #         if [[ -z "$light_state_json" ]] || [[ "$light_state_json" == "null" ]]; then
+        #              bashio::log.warning "Could not find state for light entity ${light_entity_id}. Using sensor name as fallback."
+        #              target_friendly_name="$sensor_friendly_name" # Fallback name
+        #         else
+        #             # Extract friendly name with fallback to entity_id
+        #             target_friendly_name=$(jq -r '.attributes.friendly_name // .entity_id' <<< "$light_state_json")
+        #             bashio::log.debug "Using friendly name from light entity: '${target_friendly_name}'"
+        #         fi
+        #     fi
+        # fi
 
         # --- Publish using the determined name and IP ---
-        bashio::log.info "Publishing mDNS for '${target_friendly_name}' -> ${entity_ip}"
-        publish_service "${IFACE}" "${target_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}"
+        bashio::log.info "Publishing mDNS for '${sensor_friendly_name}' -> ${entity_ip}"
+        publish_service "${IFACE}" "${sensor_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}"
+        # bashio::log.info "Publishing mDNS for '${target_friendly_name}' -> ${entity_ip}"
+        # publish_service "${IFACE}" "${target_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}"
 
         done # End of processing entities for one service rule
         bashio::log.info "[MARKER 5] Finished STEP 3 processing loop."
