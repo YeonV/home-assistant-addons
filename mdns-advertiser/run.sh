@@ -98,13 +98,14 @@ while true; do
         continue
     fi
 
-    # Now try parsing with jq
+    # Check if parsing the whole states_json is valid initially (Good practice)
     if ! echo "$states_json" | jq -e . > /dev/null; then
-        bashio::log.error "Failed to parse states JSON from Home Assistant API."
-        bashio::log.error "Response Body was: ${states_json}" # Log the problematic body
+        bashio::log.error "Initial parsing of full states_json failed. This shouldn't happen if HTTP 200."
+        # Log more if needed: bashio::log.debug "Full states_json was: ${states_json}"
         sleep "${UPDATE_INTERVAL}"
         continue
     fi
+    bashio::log.debug "Initial parsing of full states_json successful."
 
     # Get configured services from options.json using jq
     num_services=$(bashio::config 'services | length')
@@ -112,8 +113,7 @@ while true; do
 
     # Loop through each configured service rule
     for i in $(seq 0 $((num_services - 1))); do
-        service_name=$(bashio::config "services[${i}].name")
-        service_enabled=$(bashio::config "services[${i}].enabled")
+        # ... (Get service config: name, enabled, filters, ip_attribute etc.) ...
 
         if [[ "$service_enabled" != "true" ]]; then
             bashio::log.debug "Skipping disabled service: ${service_name}"
@@ -122,60 +122,93 @@ while true; do
 
         bashio::log.debug "Processing service: ${service_name}"
 
-        # Get filter criteria
-        ha_integration=$(bashio::config "services[${i}].ha_integration" | jq -r '. // empty')
-        ha_domain=$(bashio::config "services[${i}].ha_domain" | jq -r '. // empty')
-        ha_entity_pattern=$(bashio::config "services[${i}].ha_entity_pattern" | jq -r '. // empty') # TODO: Implement pattern matching if needed
-        service_type=$(bashio::config "services[${i}].service_type")
-        service_port=$(bashio::config "services[${i}].service_port")
-        ip_attribute=$(bashio::config "services[${i}].ip_attribute")
-        # TODO: Handle TXT records configuration
-
         # Construct jq filter based on provided criteria
         jq_filter='.'
         if [[ -n "$ha_integration" ]]; then
-            jq_filter+=" | select(.attributes.integration == \"${ha_integration}\")" # Assuming integration attribute exists - MAY NEED ADJUSTMENT
-            # Note: Often better to filter by domain or entity ID prefix if integration attribute isn't reliable
+            jq_filter+=" | select(.attributes.integration == \"${ha_integration}\")"
         elif [[ -n "$ha_domain" ]]; then
             jq_filter+=" | select(.entity_id | startswith(\"${ha_domain}.\"))"
         elif [[ -n "$ha_entity_pattern" ]]; then
-             # Simple prefix matching for now
-             jq_filter+=" | select(.entity_id | startswith(\"${ha_entity_pattern%???}\"))" # Basic wildcard simulation
+            jq_filter+=" | select(.entity_id | startswith(\"${ha_entity_pattern%???}\"))"
         else
-            bashio::log.warning "No filter criteria (integration, domain, or pattern) defined for service '${service_name}'. Skipping."
+            bashio::log.warning "No filter criteria defined for service '${service_name}'. Skipping."
+            continue
+        fi
+        # --- Ensure ip_attribute is correctly escaped if it contains special chars ---
+        # --- Though 'ip_address' should be safe ---
+        jq_filter+=" | select(.attributes.\"${ip_attribute}\" != null)"
+
+        bashio::log.debug "Constructed jq filter: ${jq_filter}" # Log the exact filter
+
+        # --- STEP 1: Filter Only ---
+        bashio::log.debug "Attempting to filter entities..."
+        filtered_entities_json=$(echo "$states_json" | jq -c ".[] | ${jq_filter}")
+        filter_exit_code=$? # Capture exit code of jq
+
+        if [[ $filter_exit_code -ne 0 ]]; then
+            bashio::log.error "JQ filtering failed with exit code ${filter_exit_code}!"
+            bashio::log.debug "Filter was: ${jq_filter}"
+            # Log first few chars of input to see if it looks ok
+            bashio::log.debug "Input JSON start: $(echo "$states_json" | head -c 200)"
+            # Maybe skip to next service rule or next main loop iteration
             continue
         fi
 
-        # Add filter for state = 'on' or 'available' maybe? Or just check IP attribute exists
-        jq_filter+=" | select(.attributes.\"${ip_attribute}\" != null)"
+        # Check if any entities were found
+        if [[ -z "$filtered_entities_json" ]]; then
+            bashio::log.info "No entities matched the filter for service '${service_name}'."
+            continue # Move to the next service rule
+        fi
+        bashio::log.debug "Filtering successful. Filtered entities (first 500 chars): $(echo "$filtered_entities_json" | head -c 500)"
 
-        # Extract needed info using jq
-        # Using 'c' option for compact output, 'r' for raw string output
-        echo "$states_json" | jq -c ".[] | ${jq_filter} | {name: .attributes.friendly_name, ip: .attributes.\"${ip_attribute}\"}" | \
+        # --- STEP 2: Transform Filtered Entities ---
+        bashio::log.debug "Attempting to transform filtered entities..."
+        # IMPORTANT: Process each filtered JSON object individually if jq expects one object per input line
+        transformed_output=""
+        echo "$filtered_entities_json" | while IFS= read -r single_entity_json; do
+            # Feed one entity JSON object at a time to the transformation jq
+            current_transformed=$(echo "$single_entity_json" | jq -c "{name: .attributes.friendly_name // .entity_id, ip: .attributes.\"${ip_attribute}\"}")
+            transform_exit_code=$?
+            if [[ $transform_exit_code -ne 0 ]]; then
+                bashio::log.error "JQ transformation failed with exit code ${transform_exit_code} for one entity!"
+                bashio::log.debug "Problematic filtered entity JSON: ${single_entity_json}"
+                # Decide: skip this entity or abort the whole service? For now, just log and skip entity.
+                continue
+            fi
+            # Append successful transformation to overall output, separated by newline
+            transformed_output+="${current_transformed}"$'\n'
+        done
+
+        # Check if any transformations succeeded
+        if [[ -z "$transformed_output" ]]; then
+            bashio::log.warning "Transformation resulted in empty output, although filtering found entities. Check transformation logic."
+            continue
+        fi
+        bashio::log.debug "Transformation successful."
+
+
+        # --- STEP 3: Pipe to the processing loop ---
+        # Remove trailing newline before piping
+        printf "%s" "$transformed_output" | \
         while IFS= read -r entity_info; do
+            # --- This loop should now receive correctly formed {name:..., ip:...} lines ---
             if [[ -z "$entity_info" ]]; then continue; fi
 
-            # --- ADD LOGGING ---
             bashio::log.debug "Processing entity_info line: ${entity_info}"
-            # --- END LOGGING ---
 
             entity_name=$(echo "$entity_info" | jq -r '.name')
             entity_ip=$(echo "$entity_info" | jq -r '.ip')
+            # Check exit codes for these inner jq calls too if needed
 
-            # --- ADD MORE LOGGING ---
             bashio::log.debug "Extracted Name: '${entity_name}', Extracted IP: '${entity_ip}'"
-            # --- END LOGGING ---
-
 
             if [[ -z "$entity_name" ]] || [[ -z "$entity_ip" ]]; then
-                bashio::log.warning "Could not extract name or IP for an entity in service '${service_name}'. Info: ${entity_info}"
+                bashio::log.warning "Could not extract name or IP within loop. Info: ${entity_info}"
                 continue
             fi
 
-            # TODO: Process and add TXT records here if configured
-
             # Publish the service
-            publish_service "${IFACE}" "${entity_name}" "${service_type}" "${service_port}" "${entity_ip}" # Add TXT args here
+            publish_service "${IFACE}" "${entity_name}" "${service_type}" "${service_port}" "${entity_ip}"
 
         done # End of processing entities for one service rule
 

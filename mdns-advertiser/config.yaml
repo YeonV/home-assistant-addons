@@ -1,5 +1,5 @@
 name: mDNS Advertiser
-version: "0.0.5"
+version: "0.0.6"
 slug: mdns_advertiser
 description: Selectively advertises HA services via mDNS on a specific interface
 url: "https://github.com/YeonV/home-assistant-addons/tree/main/mdns-advertiser" # Update with your repo URL
