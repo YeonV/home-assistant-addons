@@ -8,6 +8,7 @@ FROM ${BUILD_FROM}
 RUN apk add --no-cache \
     bash \
     avahi \
+    avahi-tools \
     curl \
     jq \
     coreutils \
