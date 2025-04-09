@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     bash \
     avahi \
     avahi-tools \
+    dbus \
     curl \
     jq \
     coreutils \

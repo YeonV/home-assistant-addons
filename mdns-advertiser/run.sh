@@ -8,13 +8,18 @@ HA_API_URL="http://supervisor/core/api"
 publish_service() {
     local interface="$1"; local name="$2"; local type="$3"; local port="$4"; local ip="$5"; shift 5
     local txt_args=(); for txt in "$@"; do txt_args+=("$(printf '%q' "$txt")"); done
-    bashio::log.debug "Publishing (No Subtype): Name='${name}', Type='${type}', Port=${port}, IP=${ip}, TXT='${txt_args[*]}' on Interface='${interface}'"
-    # Publish without subtype for now to simplify debugging
-    if avahi-publish --interface "$(printf '%q' "$interface")" -a -R \
-        "$(printf '%q' "$name")" "$(printf '%q' "$type")" "$port" "ip=${ip}" "${txt_args[@]}" >/dev/null 2>&1; then
-        bashio::log.trace "Successfully published '${name}' (${ip})"
+
+    bashio::log.debug "Attempting Publish: Name='${name}', Type='${type}', Port=${port}, IP=${ip}, TXT='${txt_args[*]}'"
+
+    # REMOVED redirection >/dev/null 2>&1
+    # ADDED -f flag
+    if avahi-publish -f -a -R \
+        "$(printf '%q' "$name")" "$(printf '%q' "$type")" "$port" "ip=${ip}" "${txt_args[@]}"; then
+        bashio::log.trace "avahi-publish command finished for '${name}' (${ip}). Check for errors above if publish failed."
+        # We can't rely on exit code alone with -f, but success usually means no errors printed
     else
-        bashio::log.warning "Failed to publish '${name}' (${ip})"
+        # This else block might not even be reached if -f suppresses errors that cause non-zero exit
+        bashio::log.warning "avahi-publish command potentially failed for '${name}' (${ip}). Check output."
     fi
 }
 
