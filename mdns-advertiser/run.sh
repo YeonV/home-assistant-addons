@@ -1,14 +1,15 @@
 #!/usr/bin/with-contenv bashio
 
 # ==============================================================================
-# Script constants & Helper Functions (Keep as before)
+# Script constants & Helper Functions
 # ==============================================================================
 HA_API_URL="http://supervisor/core/api"
+
 publish_service() {
     local interface="$1"; local name="$2"; local type="$3"; local port="$4"; local ip="$5"; shift 5
     local txt_args=(); for txt in "$@"; do txt_args+=("$(printf '%q' "$txt")"); done
     bashio::log.debug "Publishing (No Subtype): Name='${name}', Type='${type}', Port=${port}, IP=${ip}, TXT='${txt_args[*]}' on Interface='${interface}'"
-    # --- Keep --subtype removed for now ---
+    # Publish without subtype for now to simplify debugging
     if avahi-publish --interface "$(printf '%q' "$interface")" -a -R \
         "$(printf '%q' "$name")" "$(printf '%q' "$type")" "$port" "ip=${ip}" "${txt_args[@]}" >/dev/null 2>&1; then
         bashio::log.trace "Successfully published '${name}' (${ip})"
@@ -24,9 +25,11 @@ ADDON_NAME=$(bashio::addon.name)
 ADDON_VERSION=$(bashio::addon.version)
 bashio::log.info "Starting ${ADDON_NAME} v${ADDON_VERSION}..."
 
+# Validate required config
 if ! bashio::config.exists 'interface'; then bashio::log.fatal "Config 'interface' missing."; exit 1; fi
 [[ -z "${SUPERVISOR_TOKEN}" ]] && bashio::log.fatal "Supervisor token missing." && exit 1
 
+# Read global config
 IFACE=$(bashio::config 'interface')
 UPDATE_INTERVAL=$(bashio::config 'update_interval' 300)
 LOG_LEVEL=$(bashio::config 'log_level' 'info')
@@ -34,6 +37,7 @@ bashio::log.level "${LOG_LEVEL}"
 bashio::log.info "Advertising on interface: ${IFACE}"
 bashio::log.info "Update interval: ${UPDATE_INTERVAL} seconds"
 
+# Main loop
 while true; do
     bashio::log.debug "Starting update cycle..."
 
@@ -44,6 +48,8 @@ while true; do
         "${HA_API_URL}/states")
     http_status=$(echo "$http_response" | grep HTTP_STATUS | cut -d':' -f2)
     states_json=$(echo "$http_response" | sed '$d')
+
+    # Validate API Response
     if [[ "$http_status" -ne 200 ]] || ! echo "$states_json" | jq -e . > /dev/null; then
         bashio::log.error "Failed to fetch or parse /api/states (HTTP: ${http_status}). Skipping cycle."
         sleep "${UPDATE_INTERVAL}"
@@ -54,17 +60,17 @@ while true; do
     # --- Process Service Rules ---
     # Get count first
     num_services=$(bashio::config 'services | length')
-    # Check if num_services itself is valid number (maybe bashio returns error string?)
-     if ! [[ "$num_services" =~ ^[0-9]+$ ]]; then
-         bashio::log.warning "Could not determine number of services from config. Raw value: '${num_services}'. Skipping cycle."
-         sleep "${UPDATE_INTERVAL}"
-         continue
-     fi
+    if ! [[ "$num_services" =~ ^[0-9]+$ ]]; then
+        bashio::log.warning "Could not determine number of services from config. Raw value: '${num_services}'. Skipping cycle."
+        sleep "${UPDATE_INTERVAL}"
+        continue
+    fi
     bashio::log.debug "Found ${num_services} service configurations."
 
     for i in $(seq 0 $((num_services - 1))); do
         bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
-        set -x # <<<--- START VERBOSE TRACING HERE
+        # Wrap config reading in block to contain potential errors? Maybe not needed now.
+        # set -x # Optional: Enable for extreme debug during config read
 
         # --- Read config values using indexed access ---
         service_name_raw="$(bashio::config "services[${i}].name")"
@@ -96,9 +102,9 @@ while true; do
         ha_domain="$ha_domain_raw"; [[ "$ha_domain" == "null" ]] && ha_domain=""
         ha_entity_pattern="$ha_entity_pattern_raw"; [[ "$ha_entity_pattern" == "null" ]] && ha_entity_pattern=""
 
-        set +x # <<<--- STOP VERBOSE TRACING HERE
+        # set +x # Optional: Disable verbose tracing if enabled above
 
-        # --- Now apply default pattern logic ---
+        # --- Apply default pattern logic ---
         use_default_pattern=false
         if [[ -z "$ha_integration" && -z "$ha_domain" && -z "$ha_entity_pattern" ]]; then
             bashio::log.debug "Rule[${i}] No filter specified, using default pattern 'sensor.*_ip'."
@@ -108,8 +114,39 @@ while true; do
 
         # --- Log optional entities list if present ---
         if bashio::config.exists "services[${i}].entities"; then
-             # ... (optional entities logging logic - keep as before) ...
-        fi
+            entities_json="$(bashio::config "services[${i}].entities")" # Read the list
+             # Validate it's a non-empty array before proceeding
+             if echo "$entities_json" | jq -e '. | type == "array" and length > 0' > /dev/null; then
+                bashio::log.notice "Rule[${i}] Optional 'entities' list provided in config: ${entities_json}"
+                # --- Validate and Log Real Entities from Input List ---
+                bashio::log.debug "Rule[${i}] Validating provided optional entities..."
+                found_real_entities=() # Use simple var names, ensure they aren't used elsewhere
+                not_found_entities=()
+                # Use jq to iterate array elements safely
+                echo "$entities_json" | jq -cr '.[]' | while IFS= read -r entity_id_from_config; do
+                    # Check if this entity exists in our fetched states
+                    # Use -e flag for jq to set exit code based on result (0 if found, non-zero if not)
+                    if jq -e --arg entity_id "$entity_id_from_config" \
+                       '.[] | select(.entity_id == $entity_id) | true' <<< "$states_json" > /dev/null; then
+                        bashio::log.trace "Rule[${i}]   Found entity from config list: ${entity_id_from_config}"
+                        found_real_entities+=("$entity_id_from_config")
+                    else
+                        bashio::log.trace "Rule[${i}]   Entity from config list NOT FOUND in current states: ${entity_id_from_config}"
+                        not_found_entities+=("$entity_id_from_config")
+                    fi
+                done # End while reading entity_ids from config json
+                # Log results after the loop
+                if [[ ${#found_real_entities[@]} -gt 0 ]]; then
+                     bashio::log.notice "Rule[${i}] Real entities found based on optional config list: ${found_real_entities[*]}"
+                fi
+                if [[ ${#not_found_entities[@]} -gt 0 ]]; then
+                     bashio::log.warning "Rule[${i}] Entities from optional config list NOT FOUND in current states: ${not_found_entities[*]}"
+                fi
+                # --- END Validation ---
+             else
+                 bashio::log.debug "Rule[${i}] Optional 'entities' list is present but empty or not an array."
+             fi
+        fi # End check for entities config existing
 
         # --- Log final processed values ---
         bashio::log.debug "Rule[${i}] Name: '${service_name}', Enabled: ${service_enabled}"
@@ -121,27 +158,22 @@ while true; do
 
         # --- Validation & Skip Checks ---
         if [[ "$service_enabled" != "true" ]]; then bashio::log.debug "Rule[${i}] Skipping disabled service."; continue; fi
-        # ... (other validation checks) ...
+        if [[ -z "$service_name" ]] || [[ -z "$service_type" ]] || [[ -z "$service_port" ]]; then bashio::log.warning "Rule[${i}] Required field missing (name, type, port). Skipping."; continue; fi
+        if [[ "$ip_source" == "attribute" && -z "$ip_attribute" ]]; then bashio::log.warning "Rule[${i}] ip_source is 'attribute' but ip_attribute missing. Skipping."; continue; fi
+        if [[ "$name_source" == "attribute" && -z "$name_attribute" ]]; then bashio::log.warning "Rule[${i}] name_source is 'attribute' but name_attribute missing. Skipping."; continue; fi
 
-        # --- Construct JQ Filter (using the PROCESSED variables) ---
+        # --- Construct JQ Filter ---
         bashio::log.info "[MARKER 1] Constructing filter..."
         jq_filter='.' # Start with all entities
-
-        # Apply primary filter (Integration, Domain, or Pattern)
+        # Apply primary filter (using test() for pattern)
         if [[ -n "$ha_integration" ]]; then
-            bashio::log.debug "Using filter: integration = ${ha_integration}"
             jq_filter+=" | select(.attributes.integration == \"${ha_integration}\")"
         elif [[ -n "$ha_domain" ]]; then
-            bashio::log.debug "Using filter: domain = ${ha_domain}."
             jq_filter+=" | select(.entity_id | startswith(\"${ha_domain}.\"))"
         elif [[ -n "$ha_entity_pattern" ]]; then
-            bashio::log.debug "Using filter: entity pattern = ${ha_entity_pattern}"
-            # Use test() for regex matching
-            escaped_pattern=$(echo "$ha_entity_pattern" | sed -e 's/[.^$*+?(){}|[\]\\]/\\&/g' -e 's/\//\\\//g') # Escape regex chars AND forward slash for jq
+            escaped_pattern=$(echo "$ha_entity_pattern" | sed -e 's/[.^$*+?(){}|[\]\\]/\\&/g' -e 's/\//\\\//g')
             jq_filter+=" | select(.entity_id | test(\"^${escaped_pattern}\"))"
-        # No 'else' needed because default pattern is applied above if all were empty
         fi
-
         # Apply state filter
         if [[ -n "$filter_state" ]]; then
             op_str="=="; [[ "$filter_inverse" == "true" ]] && op_str="!="
@@ -149,16 +181,13 @@ while true; do
             op="=="; [[ "$filter_inverse" == "true" ]] && op="!="
             jq_filter+=" | select(.state ${op} \"${filter_state}\")"
         fi
-
         # Apply IP source check
         if [[ "$ip_source" == "state" ]]; then
-            # Ensure state is not null, empty, unavailable, or unknown
             jq_filter+=" | select(.state != null and .state != \"\" and .state != \"unavailable\" and .state != \"unknown\")"
         else
             jq_filter+=" | select(.attributes.\"${ip_attribute}\" != null)"
         fi
         bashio::log.debug "Constructed jq filter: ${jq_filter}"
-
 
         # --- Filter Entities ---
         bashio::log.info "[MARKER 2] Starting entity filtering..."
@@ -173,30 +202,28 @@ while true; do
         echo "$filtered_entities_json" | jq -c '.[]' | while IFS= read -r entity_state_json; do
             bashio::log.trace "Rule[${i}] Processing filtered entity JSON: ${entity_state_json}"
 
-           # --- Debug and Trim Name ---
-            bashio::log.debug "Name before trimming: '${target_friendly_name}'"
-            # Log hex representation to check for weird spaces
-            bashio::log.trace "Name before trimming (hex): $(printf '%s' "$target_friendly_name" | xxd -p)"
+            # Extract Name
+            target_friendly_name=""
+            if [[ "$name_source" == "entity_id" ]]; then
+                target_friendly_name=$(jq -r '.entity_id' <<< "$entity_state_json")
+            else # Default attribute
+                target_friendly_name=$(jq -r ".attributes.\"${name_attribute}\" // .entity_id" <<< "$entity_state_json")
+            fi
 
+            # Debug and Trim Name
+            bashio::log.debug "Name before trimming: '${target_friendly_name}'"
+            bashio::log.trace "Name before trimming (hex): $(printf '%s' "$target_friendly_name" | xxd -p)"
             original_name_for_log="$target_friendly_name"
             target_friendly_name="${target_friendly_name% IP}" # Attempt trimming
-
             bashio::log.debug "Name AFTER trimming: '${target_friendly_name}'"
             bashio::log.trace "Name AFTER trimming (hex): $(printf '%s' "$target_friendly_name" | xxd -p)"
-
             if [[ "$original_name_for_log" == "$target_friendly_name" ]]; then
-                bashio::log.debug "Trimming ' IP' had NO effect on the name."
+                 bashio::log.debug "Trimming ' IP' had NO effect on the name."
             else
-                bashio::log.info "Successfully trimmed ' IP' from name. Original: '${original_name_for_log}'"
+                 bashio::log.info "Successfully trimmed ' IP' from name. Original: '${original_name_for_log}'"
             fi
-            # --- End Debug and Trim ---
-            # Log if changed
-            if [[ "$original_name_for_log" != "$target_friendly_name" ]]; then
-                bashio::log.trace "Rule[${i}] Removed trailing ' IP' from name. Original: '${original_name_for_log}', New: '${target_friendly_name}'"
-            fi
-            # --- END NEW ---
 
-            # --- Extract IP ---
+            # Extract IP
             entity_ip=""
             if [[ "$ip_source" == "state" ]]; then
                 entity_ip=$(jq -r '.state' <<< "$entity_state_json")
@@ -204,12 +231,12 @@ while true; do
                 entity_ip=$(jq -r ".attributes.\"${ip_attribute}\"" <<< "$entity_state_json")
             fi
 
-            # --- Validation ---
+            # Validation
             if [[ -z "$target_friendly_name" ]] || [[ "$target_friendly_name" == "null" ]]; then bashio::log.warning "Rule[${i}] Invalid name. JSON: ${entity_state_json}. Skip."; continue; fi
             if [[ -z "$entity_ip" ]] || [[ "$entity_ip" == "null" ]]; then bashio::log.warning "Rule[${i}] Invalid IP. JSON: ${entity_state_json}. Skip."; continue; fi
             if ! [[ "$entity_ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then bashio::log.warning "Rule[${i}] Invalid IP format '${entity_ip}'. JSON: ${entity_state_json}. Skip."; continue; fi
 
-            # --- Publish ---
+            # Publish
             bashio::log.info "Rule[${i}] Publishing mDNS for '${target_friendly_name}' -> ${entity_ip}"
             publish_service "${IFACE}" "${target_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}"
 
