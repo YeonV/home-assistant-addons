@@ -113,7 +113,41 @@ while true; do
 
     # Loop through each configured service rule
     for i in $(seq 0 $((num_services - 1))); do
-        # ... (Get service config: name, enabled, filters, ip_attribute etc.) ...
+        service_name=$(bashio::config "services[${i}].name")
+        bashio::log.trace "Read service_name for index ${i}: '${service_name}'" # Add trace if needed
+
+        # --- MODIFICATION START ---
+        # Get the raw value, handle potential null/empty from bashio
+        service_enabled_raw=$(bashio::config "services[${i}].enabled")
+        bashio::log.trace "Raw service_enabled value for index ${i}: '${service_enabled_raw}'" # Add trace if needed
+
+        # Default to 'true' if the value is not explicitly 'false'
+        if [[ "$service_enabled_raw" == "false" ]]; then
+            service_enabled="false"
+        else
+            service_enabled="true" # Treat empty, null, "true", or anything else as true
+        fi
+        bashio::log.trace "Processed service_enabled for index ${i}: '${service_enabled}'" # Add trace if needed
+        # --- MODIFICATION END ---
+
+        # --- GET OTHER CONFIG VALUES ---
+        ha_integration=$(bashio::config "services[${i}].ha_integration" | jq -r '. // empty')
+        ha_domain=$(bashio::config "services[${i}].ha_domain" | jq -r '. // empty')
+        ha_entity_pattern=$(bashio::config "services[${i}].ha_entity_pattern" | jq -r '. // empty') # TODO: Implement pattern matching if needed
+        service_type=$(bashio::config "services[${i}].service_type")
+        service_port=$(bashio::config "services[${i}].service_port")
+        ip_attribute=$(bashio::config "services[${i}].ip_attribute")
+        # TODO: Handle TXT records configuration
+        # --- END GET OTHER CONFIG VALUES ---
+
+
+        # --- Now the check should work ---
+        if [[ "$service_enabled" != "true" ]]; then
+            bashio::log.debug "Skipping disabled service: ${service_name}"
+            continue
+        fi
+
+        bashio::log.debug "Processing enabled service: ${service_name}" # Changed log message slightly
 
         if [[ "$service_enabled" != "true" ]]; then
             bashio::log.debug "Skipping disabled service: ${service_name}"
