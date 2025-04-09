@@ -1,5 +1,5 @@
 name: mDNS Advertiser
-version: "0.0.13"
+version: "0.0.14"
 slug: mdns_advertiser
 description: Selectively advertises specified HA entities via mDNS
 url: "https://github.com/YeonV/home-assistant-addons/tree/main/mdns-advertiser"
@@ -16,16 +16,11 @@ options:
   update_interval: 300
   log_level: "info"
   services: []
-  # --- NEW: Optional test device input ---
-  test_device: null # Default to null/not set
-  # --- END NEW ---
 schema:
   interface: str
   update_interval: int(60,)
   log_level: list(trace|debug|info|notice|warning|error|fatal)
-  # --- NEW: Optional test device input ---
-  test_device: device? # Optional device selector
-  # --- END NEW ---
+  # REMOVED test_device
   services: # List of service rules
     - name: str
       enabled: bool? # Optional, default true
