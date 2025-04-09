@@ -58,43 +58,76 @@ while true; do
     bashio::log.debug "Successfully fetched and parsed HA states."
 
     # --- Process Service Rules ---
-    num_services=$(bashio::config 'services | length')
+    services_config_json=$(bashio::config 'services')
+    if ! echo "$services_config_json" | jq -e '. | type == "array"' > /dev/null; then
+        bashio::log.warning "Configuration 'services' is not a valid JSON array. Skipping cycle."
+        sleep "${UPDATE_INTERVAL}"
+        continue
+    fi
+
+    num_services=$(echo "$services_config_json" | jq 'length')
     bashio::log.debug "Found ${num_services} service configurations."
 
     for i in $(seq 0 $((num_services - 1))); do
         bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
 
-        # --- Read ALL raw values first ---
-        service_name_raw="$(bashio::config "services[${i}].name")"
-        service_enabled_raw="$(bashio::config "services[${i}].enabled")"
-        service_type_raw="$(bashio::config "services[${i}].service_type")"
-        service_port_raw="$(bashio::config "services[${i}].service_port")"
-        ip_source_raw="$(bashio::config "services[${i}].ip_source")" # No default here yet
-        ip_attribute_raw="$(bashio::config "services[${i}].ip_attribute")"
-        name_source_raw="$(bashio::config "services[${i}].name_source")" # No default here yet
-        name_attribute_raw="$(bashio::config "services[${i}].name_attribute")" # No default here yet
-        filter_state_raw="$(bashio::config "services[${i}].filter_by_state")"
-        filter_inverse_raw="$(bashio::config "services[${i}].filter_by_state_inverse")"
-        ha_integration_raw="$(bashio::config "services[${i}].ha_integration")"
-        ha_domain_raw="$(bashio::config "services[${i}].ha_domain")"
-        ha_entity_pattern_raw="$(bashio::config "services[${i}].ha_entity_pattern")"
+        # --- Extract config for this index using jq ---
+        current_service_config=$(echo "$services_config_json" | jq -c ".[${i}]") # Get the object for index i
 
-        # --- Process values, apply defaults, handle nulls ---
-        service_name="$service_name_raw"
+        # --- Read values from the extracted JSON object ---
+        # Use jq with checks for null/defaults
+        service_name=$(echo "$current_service_config" | jq -r '.name // empty')
+        service_enabled_raw=$(echo "$current_service_config" | jq -r '.enabled // "true"') # Default true if null
         service_enabled="true"; [[ "$service_enabled_raw" == "false" ]] && service_enabled="false"
-        service_type="$service_type_raw"
-        service_port="$service_port_raw"
-        ip_source="$ip_source_raw"; [[ -z "$ip_source" || "$ip_source" == "null" ]] && ip_source="state"
-        ip_attribute="$ip_attribute_raw"; [[ "$ip_attribute" == "null" ]] && ip_attribute=""
-        name_source="$name_source_raw"; [[ -z "$name_source" || "$name_source" == "null" ]] && name_source="attribute"
-        name_attribute="$name_attribute_raw"; [[ -z "$name_attribute" || "$name_attribute" == "null" ]] && name_attribute="friendly_name"
-        filter_state="$filter_state_raw"; [[ "$filter_state" == "null" ]] && filter_state=""
+        service_type=$(echo "$current_service_config" | jq -r '.service_type // empty')
+        service_port=$(echo "$current_service_config" | jq -r '.service_port // empty')
+        ip_source=$(echo "$current_service_config" | jq -r '.ip_source // "state"') # Default state
+        ip_attribute=$(echo "$current_service_config" | jq -r '.ip_attribute // empty')
+        name_source=$(echo "$current_service_config" | jq -r '.name_source // "attribute"') # Default attribute
+        name_attribute=$(echo "$current_service_config" | jq -r '.name_attribute // "friendly_name"') # Default friendly_name
+        filter_state=$(echo "$current_service_config" | jq -r '.filter_by_state // empty')
+        filter_inverse_raw=$(echo "$current_service_config" | jq -r '.filter_by_state_inverse // "false"') # Default false
         filter_inverse="false"; [[ "$filter_inverse_raw" == "true" ]] && filter_inverse="true"
-        ha_integration="$ha_integration_raw"; [[ "$ha_integration" == "null" ]] && ha_integration=""
-        ha_domain="$ha_domain_raw"; [[ "$ha_domain" == "null" ]] && ha_domain=""
-        ha_entity_pattern="$ha_entity_pattern_raw"; [[ "$ha_entity_pattern" == "null" ]] && ha_entity_pattern=""
+        ha_integration=$(echo "$current_service_config" | jq -r '.ha_integration // empty')
+        ha_domain=$(echo "$current_service_config" | jq -r '.ha_domain // empty')
+        ha_entity_pattern=$(echo "$current_service_config" | jq -r '.ha_entity_pattern // empty')
 
-        # --- Now apply default pattern logic ---
+        # --- Log optional entities list if present ---
+        user_provided_entities=() # Bash array to store validated entity IDs from config
+        log_user_entities=false
+        if bashio::config.exists "services[${i}].entities"; then
+            entities_json="$(bashio::config "services[${i}].entities")" # Read the list again if needed, or use variable from above
+            if echo "$entities_json" | jq -e '. | type == "array" and length > 0' > /dev/null; then
+                bashio::log.notice "Rule[${i}] Optional 'entities' list provided in config: ${entities_json}"
+                log_user_entities=true
+                # --- NEW: Validate and Log Real Entities from Input List ---
+                bashio::log.debug "Rule[${i}] Validating provided optional entities..."
+                found_real_entities=()
+                not_found_entities=()
+                echo "$entities_json" | jq -cr '.[]' | while IFS= read -r entity_id_from_config; do
+                    # Check if this entity exists in our fetched states
+                    if jq -e --arg entity_id "$entity_id_from_config" \
+                    '.[] | select(.entity_id == $entity_id)' <<< "$states_json" > /dev/null; then
+                        bashio::log.trace "Rule[${i}]   Found entity from config list: ${entity_id_from_config}"
+                        found_real_entities+=("$entity_id_from_config")
+                    else
+                        bashio::log.trace "Rule[${i}]   Entity from config list NOT FOUND in current states: ${entity_id_from_config}"
+                        not_found_entities+=("$entity_id_from_config")
+                    fi
+                done
+                if [[ ${#found_real_entities[@]} -gt 0 ]]; then
+                    bashio::log.notice "Rule[${i}] Real entities found based on optional config list: ${found_real_entities[*]}"
+                fi
+                if [[ ${#not_found_entities[@]} -gt 0 ]]; then
+                    bashio::log.warning "Rule[${i}] Entities from optional config list NOT FOUND in current states: ${not_found_entities[*]}"
+                fi
+                # --- END NEW VALIDATION ---
+            else
+                bashio::log.debug "Rule[${i}] Optional 'entities' list is present but empty or not an array."
+            fi
+        fi
+
+        # --- Apply default pattern logic ---
         use_default_pattern=false
         if [[ -z "$ha_integration" && -z "$ha_domain" && -z "$ha_entity_pattern" ]]; then
             bashio::log.debug "Rule[${i}] No filter specified, using default pattern 'sensor.*_ip'."
@@ -173,15 +206,25 @@ while true; do
             bashio::log.trace "Rule[${i}] Processing filtered entity JSON: ${entity_state_json}"
 
             # --- Extract Name ---
-            target_friendly_name="" # Initialize
+            target_friendly_name=""
             if [[ "$name_source" == "entity_id" ]]; then
                 target_friendly_name=$(jq -r '.entity_id' <<< "$entity_state_json")
             else # Default attribute
                 target_friendly_name=$(jq -r ".attributes.\"${name_attribute}\" // .entity_id" <<< "$entity_state_json")
             fi
 
+            # --- NEW: Remove trailing " IP" ---
+            # Use bash parameter expansion: ${variable%pattern} removes shortest match of pattern from end
+            original_name_for_log="$target_friendly_name" # Keep original for logging if needed
+            target_friendly_name="${target_friendly_name% IP}"
+            # Log if changed
+            if [[ "$original_name_for_log" != "$target_friendly_name" ]]; then
+                bashio::log.trace "Rule[${i}] Removed trailing ' IP' from name. Original: '${original_name_for_log}', New: '${target_friendly_name}'"
+            fi
+            # --- END NEW ---
+
             # --- Extract IP ---
-            entity_ip="" # Initialize
+            entity_ip=""
             if [[ "$ip_source" == "state" ]]; then
                 entity_ip=$(jq -r '.state' <<< "$entity_state_json")
             else # Default attribute
