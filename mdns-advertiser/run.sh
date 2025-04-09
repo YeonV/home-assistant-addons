@@ -67,14 +67,41 @@ bashio::log.info "Update interval: ${UPDATE_INTERVAL} seconds"
 while true; do
     bashio::log.debug "Starting update cycle..."
 
-    # Fetch all states from Home Assistant API
-    states_json=$(curl -s -X GET \
+    bashio::log.debug "Attempting to fetch states from API: ${HA_API_URL}/states"
+
+    # Capture response body AND http status code
+    http_response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET \
         -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
         -H "Content-Type: application/json" \
         "${HA_API_URL}/states")
 
-    if [[ -z "$states_json" ]] || ! echo "$states_json" | jq -e . > /dev/null; then
-        bashio::log.error "Failed to fetch or parse states from Home Assistant API."
+    # Separate status code from body
+    http_status=$(echo "$http_response" | grep HTTP_STATUS | cut -d':' -f2)
+    states_json=$(echo "$http_response" | sed '$d') # Remove last line (status code)
+
+    bashio::log.debug "Received HTTP Status: ${http_status}"
+    # Log the first few characters of the response for inspection
+    bashio::log.debug "Received Response Body (first 100 chars): $(echo "$states_json" | head -c 100)"
+
+    # Check HTTP status code explicitly
+    if [[ "$http_status" -ne 200 ]]; then
+        bashio::log.error "API request failed with HTTP status: ${http_status}"
+        bashio::log.error "Response Body: ${states_json}" # Log the full body on error
+        sleep "${UPDATE_INTERVAL}"
+        continue
+    fi
+
+    # Check if the body is empty (even if status is 200)
+    if [[ -z "$states_json" ]]; then
+        bashio::log.error "API request succeeded (HTTP 200) but returned empty body."
+        sleep "${UPDATE_INTERVAL}"
+        continue
+    fi
+
+    # Now try parsing with jq
+    if ! echo "$states_json" | jq -e . > /dev/null; then
+        bashio::log.error "Failed to parse states JSON from Home Assistant API."
+        bashio::log.error "Response Body was: ${states_json}" # Log the problematic body
         sleep "${UPDATE_INTERVAL}"
         continue
     fi
