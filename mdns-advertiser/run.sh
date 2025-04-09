@@ -3,40 +3,18 @@
 # ==============================================================================
 # Script constants
 # ==============================================================================
-# Home Assistant API URL (internal via supervisor)
 HA_API_URL="http://supervisor/core/api"
 
 # ==============================================================================
 # Helper Functions
 # ==============================================================================
-# Function to publish service using avahi-publish
-# Args: interface name type port ip [txt_key=txt_value...]
 publish_service() {
-    local interface="$1"
-    local name="$2"
-    local type="$3"
-    local port="$4"
-    local ip="$5"
-    shift 5 # Remove first 5 args
+    local interface="$1"; local name="$2"; local type="$3"; local port="$4"; local ip="$5"; shift 5
+    local txt_args=(); for txt in "$@"; do txt_args+=("$(printf '%q' "$txt")"); done
 
-    local txt_args=()
-    for txt in "$@"; do
-        txt_args+=("$(printf '%q' "$txt")") # Quote properly for shell command
-    done
-
-    # Using -R to remove conflicting services with the same name/type/domain
-    # Using -a to add (or update if already present with same name?)
     bashio::log.debug "Publishing: Name='${name}', Type='${type}', Port=${port}, IP=${ip}, TXT='${txt_args[*]}' on Interface='${interface}'"
-    if avahi-publish \
-        --interface "$(printf '%q' "$interface")" \
-        --subtype _home-assistant._sub."${type}" \
-        -a \
-        -R \
-        "$(printf '%q' "$name")" \
-        "$(printf '%q' "$type")" \
-        "$port" \
-        "ip=${ip}" \
-        "${txt_args[@]}" >/dev/null 2>&1; then
+    if avahi-publish --interface "$(printf '%q' "$interface")" --subtype _home-assistant._sub."${type}" -a -R \
+        "$(printf '%q' "$name")" "$(printf '%q' "$type")" "$port" "ip=${ip}" "${txt_args[@]}" >/dev/null 2>&1; then
         bashio::log.trace "Successfully published '${name}' (${ip})"
     else
         bashio::log.warning "Failed to publish '${name}' (${ip})"
@@ -49,172 +27,155 @@ publish_service() {
 bashio::log.info "Starting mDNS Advertiser..."
 
 # Validate SUPERVISOR_TOKEN
-if [[ -z "${SUPERVISOR_TOKEN}" ]]; then
-    bashio::log.fatal "Supervisor token not available. Is hassio_api=true set?"
+if ! bashio::config.exists 'interface'; then
+    bashio::log.fatal "Required configuration 'interface' is missing."
     exit 1
 fi
+[[ -z "${SUPERVISOR_TOKEN}" ]] && bashio::log.fatal "Supervisor token missing." && exit 1
 
 # Read configuration
 IFACE=$(bashio::config 'interface')
-UPDATE_INTERVAL=$(bashio::config 'update_interval')
-LOG_LEVEL=$(bashio::config 'log_level')
+UPDATE_INTERVAL=$(bashio::config 'update_interval' 300) # Default 300
+LOG_LEVEL=$(bashio::config 'log_level' 'info') # Default info
 bashio::log.level "${LOG_LEVEL}"
-
 bashio::log.info "Advertising on interface: ${IFACE}"
 bashio::log.info "Update interval: ${UPDATE_INTERVAL} seconds"
 
 # Main loop
 while true; do
     bashio::log.debug "Starting update cycle..."
-    # ... (Fetch states_json and devices_json) ...
-    # bashio::log.debug "Attempting to fetch devices from API: ${HA_API_URL}/devices"
-    # devices_response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET \
-    #     -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-    #     -H "Content-Type: application/json" \
-    #     "${HA_API_URL}/devices")
-    # devices_status=$(echo "$devices_response" | grep HTTP_STATUS | cut -d':' -f2)
-    # devices_json=$(echo "$devices_response" | sed '$d')
-    # if [[ "$devices_status" -ne 200 ]] || ! echo "$devices_json" | jq -e . > /dev/null; then
-    #     bashio::log.error "Failed to fetch or parse /api/devices (HTTP: ${devices_status}). Skipping cycle."
-    #     sleep "${UPDATE_INTERVAL}"
-    #     continue
-    # fi
-    # bashio::log.debug "Successfully fetched and parsed /api/devices."
 
+    # --- Fetch States ---
     bashio::log.debug "Attempting to fetch states from API: ${HA_API_URL}/states"
-
-    # Capture response body AND http status code
     http_response=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X GET \
-        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" -H "Content-Type: application/json" \
         "${HA_API_URL}/states")
-
-    # Separate status code from body
     http_status=$(echo "$http_response" | grep HTTP_STATUS | cut -d':' -f2)
-    states_json=$(echo "$http_response" | sed '$d') # Remove last line (status code)
+    states_json=$(echo "$http_response" | sed '$d')
 
-    bashio::log.debug "Received HTTP Status: ${http_status}"
-    # Log the first few characters of the response for inspection
-    bashio::log.debug "Received Response Body (first 400 chars): $(echo "$states_json" | head -c 400)"
-
-    # Check HTTP status code explicitly
-    if [[ "$http_status" -ne 200 ]]; then
-        bashio::log.error "API request failed with HTTP status: ${http_status}"
-        bashio::log.error "Response Body: ${states_json}" # Log the full body on error
+    if [[ "$http_status" -ne 200 ]] || ! echo "$states_json" | jq -e . > /dev/null; then
+        bashio::log.error "Failed to fetch or parse /api/states (HTTP: ${http_status}). Skipping cycle."
         sleep "${UPDATE_INTERVAL}"
         continue
     fi
+    bashio::log.debug "Successfully fetched and parsed HA states."
 
-    # Check if the body is empty (even if status is 200)
-    if [[ -z "$states_json" ]]; then
-        bashio::log.error "API request succeeded (HTTP 200) but returned empty body."
-        sleep "${UPDATE_INTERVAL}"
-        continue
-    fi
-
-    # Check if parsing the whole states_json is valid initially (Good practice)
-    if ! echo "$states_json" | jq -e . > /dev/null; then
-        bashio::log.error "Initial parsing of full states_json failed. This shouldn't happen if HTTP 200."
-        # Log more if needed: bashio::log.debug "Full states_json was: ${states_json}"
-        sleep "${UPDATE_INTERVAL}"
-        continue
-    fi
-    bashio::log.debug "Initial parsing of full states_json successful."
-
-    # Get configured services from options.json using jq
+    # --- Process Service Rules ---
     num_services=$(bashio::config 'services | length')
     bashio::log.debug "Found ${num_services} service configurations."
 
-    # Loop through each configured service rule (assuming one rule for WLED)
-for i in $(seq 0 $((num_services - 1))); do
-    # ... (Read config: name, filters, service_type, port, etc.) ...
-    # ... (Ensure ip_source is 'state', ha_entity_pattern is 'sensor.*_ip', state filter is set) ...
+    for i in $(seq 0 $((num_services - 1))); do
+        bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
 
-    # ... (Construct jq filter for IP sensors - including state != 'unavailable') ...
-    bashio::log.debug "Constructed IP Sensor jq filter: ${jq_filter}"
+        # --- Read Service Config ---
+        local service_name; service_name=$(bashio::config "services[${i}].name")
+        local service_enabled_raw; service_enabled_raw=$(bashio::config "services[${i}].enabled")
+        local service_enabled; if [[ "$service_enabled_raw" == "false" ]]; then service_enabled="false"; else service_enabled="true"; fi
+        local entities_json; entities_json=$(bashio::config "services[${i}].entities") # Get the JSON array string
+        local service_type; service_type=$(bashio::config "services[${i}].service_type")
+        local service_port; service_port=$(bashio::config "services[${i}].service_port")
+        local ip_source; ip_source=$(bashio::config "services[${i}].ip_source" "attribute") # Default attribute
+        local ip_attribute; ip_attribute=$(bashio::config "services[${i}].ip_attribute")
+        local name_source; name_source=$(bashio::config "services[${i}].name_source" "attribute") # Default attribute
+        local name_attribute; name_attribute=$(bashio::config "services[${i}].name_attribute" "friendly_name") # Default friendly_name
+        local filter_state; filter_state=$(bashio::config "services[${i}].filter_by_state")
+        local filter_inverse_raw; filter_inverse_raw=$(bashio::config "services[${i}].filter_by_state_inverse")
+        local filter_inverse; if [[ "$filter_inverse_raw" == "true" ]]; then filter_inverse="true"; else filter_inverse="false"; fi
 
-    # --- Filter IP Sensor States ---
-    bashio::log.debug "Filtering IP sensor entities..."
-    # Use map() for potentially cleaner processing if dealing with multiple sensors later
-    filtered_ip_sensors_json=$(jq -c "[.[] | ${jq_filter}]" <<< "$states_json")
-    filter_exit_code=$?
-    # ... (Handle filter errors, check if result is empty array '[]') ...
-    bashio::log.debug "Filtered IP sensors (first 500): $(echo "$filtered_ip_sensors_json" | head -c 500)"
+        bashio::log.debug "Rule[${i}] Name: '${service_name}', Enabled: ${service_enabled}"
+        bashio::log.debug "Rule[${i}] Entities JSON: ${entities_json}"
+        bashio::log.debug "Rule[${i}] Service Type: ${service_type}, Port: ${service_port}"
+        bashio::log.debug "Rule[${i}] IP Source: ${ip_source}, IP Attr: '${ip_attribute}'"
+        bashio::log.debug "Rule[${i}] Name Source: ${name_source}, Name Attr: '${name_attribute}'"
+        bashio::log.debug "Rule[${i}] State Filter: '${filter_state}', Inverse: ${filter_inverse}"
 
-    # --- Process each found IP Sensor ---
-    echo "$filtered_ip_sensors_json" | jq -c '.[]' | while IFS= read -r single_ip_sensor_json; do
-        bashio::log.info "[MARKER 3.1] Processing IP Sensor JSON: ${single_ip_sensor_json}"
+        # --- Validation & Skip Checks ---
+        if [[ "$service_enabled" != "true" ]]; then bashio::log.debug "Rule[${i}] Skipping disabled service."; continue; fi
+        if [[ -z "$service_name" ]] || [[ -z "$service_type" ]] || [[ -z "$service_port" ]]; then bashio::log.warning "Rule[${i}] Required field missing (name, type, port). Skipping."; continue; fi
+        if [[ "$ip_source" == "attribute" && -z "$ip_attribute" ]]; then bashio::log.warning "Rule[${i}] ip_source is 'attribute' but ip_attribute missing. Skipping."; continue; fi
+        if [[ "$name_source" == "attribute" && -z "$name_attribute" ]]; then bashio::log.warning "Rule[${i}] name_source is 'attribute' but name_attribute missing. Skipping."; continue; fi
+        if ! echo "$entities_json" | jq -e '. | type == "array" and length > 0' > /dev/null; then bashio::log.warning "Rule[${i}] 'entities' list is missing, not an array, or empty. Skipping."; continue; fi
 
-        # Extract Sensor Info
-        sensor_entity_id=$(jq -r '.entity_id' <<< "$single_ip_sensor_json")
-        entity_ip=$(jq -r '.state' <<< "$single_ip_sensor_json") # IP from state
-        sensor_friendly_name=$(jq -r '.attributes.friendly_name // $sensor_entity_id' <<< "$single_ip_sensor_json") # Sensor's own name as fallback
+        # --- Process Entities specified in the config ---
+        bashio::log.info "[MARKER 1] Processing configured entities for Rule[${i}]..."
+        echo "$entities_json" | jq -c '.[]' | while IFS= read -r entity_id_json; do
+            # Extract entity ID (remove quotes)
+            target_entity_id=$(echo "$entity_id_json" | jq -r '.')
+            bashio::log.debug "Rule[${i}] Checking entity: ${target_entity_id}"
 
-        if [[ -z "$sensor_entity_id" ]] || [[ -z "$entity_ip" ]]; then
-            bashio::log.warning "Could not extract entity_id or IP from sensor object. Skipping."
-            continue
-        fi
-        bashio::log.debug "Found IP Sensor: ${sensor_entity_id} with IP: ${entity_ip}"
+            # --- Find this entity's state in the full states list ---
+            entity_state_json=$(jq -c --arg entity_id "$target_entity_id" \
+                '.[] | select(.entity_id == $entity_id)' <<< "$states_json")
 
-        # # --- Find Device ID using Sensor Entity ID ---
-        # bashio::log.debug "Searching for Device ID for sensor ${sensor_entity_id}..."
-        # # JQ query to find the device containing this sensor entity_id
-        # device_id=$(jq -r --arg sensor_id "$sensor_entity_id" \
-        #     '.[] | select(.entities[]?.entity_id == $sensor_id) | .id | first' \
-        #     <<< "$devices_json") # Use 'first' in case of weird duplicates
+            if [[ -z "$entity_state_json" ]] || [[ "$entity_state_json" == "null" ]]; then
+                bashio::log.warning "Rule[${i}] Could not find state for specified entity: ${target_entity_id}. Skipping."
+                continue
+            fi
+            bashio::log.trace "Rule[${i}] Found state JSON: ${entity_state_json}"
 
-        # if [[ -z "$device_id" ]] || [[ "$device_id" == "null" ]]; then
-        #     bashio::log.warning "Could not find Device ID for sensor ${sensor_entity_id}. Using sensor name as fallback."
-        #     target_friendly_name="$sensor_friendly_name" # Fallback name
-        # else
-        #     bashio::log.debug "Found Device ID: ${device_id}"
+            # --- Apply State Filter ---
+            if [[ -n "$filter_state" ]]; then
+                current_state=$(jq -r '.state' <<< "$entity_state_json")
+                bashio::log.trace "Rule[${i}] Checking state filter: Current='${current_state}', Filter='${filter_state}', Inverse=${filter_inverse}"
+                if [[ "$filter_inverse" == "true" ]]; then
+                    # Keep if state DOES NOT match filter_state
+                    if [[ "$current_state" == "$filter_state" ]]; then
+                         bashio::log.debug "Rule[${i}] Entity ${target_entity_id} skipped due to inverse state filter (state matched '${filter_state}')."
+                         continue
+                    fi
+                else
+                    # Keep if state DOES match filter_state (less common use case)
+                     if [[ "$current_state" != "$filter_state" ]]; then
+                         bashio::log.debug "Rule[${i}] Entity ${target_entity_id} skipped due to state filter (state did not match '${filter_state}')."
+                         continue
+                    fi
+                fi
+                bashio::log.trace "Rule[${i}] Entity ${target_entity_id} passed state filter."
+             fi
 
-        #     # --- Find Light Entity ID using Device ID ---
-        #     bashio::log.debug "Searching for light entity for Device ID ${device_id}..."
-        #     # JQ query to find the first entity starting with 'light.' within that device
-        #     light_entity_id=$(jq -r --arg dev_id "$device_id" \
-        #         '.[] | select(.id == $dev_id) | .entities[]? | select(.entity_id? | startswith("light.")) | .entity_id | first' \
-        #         <<< "$devices_json")
+            # --- Extract Name ---
+            local target_friendly_name
+            if [[ "$name_source" == "entity_id" ]]; then
+                target_friendly_name=$(jq -r '.entity_id' <<< "$entity_state_json")
+            else # Default to attribute
+                target_friendly_name=$(jq -r ".attributes.\"${name_attribute}\" // .entity_id" <<< "$entity_state_json") # Fallback to entity_id
+            fi
+            bashio::log.trace "Rule[${i}] Extracted Name: '${target_friendly_name}'"
 
-        #     if [[ -z "$light_entity_id" ]] || [[ "$light_entity_id" == "null" ]]; then
-        #         bashio::log.warning "Could not find light entity for Device ID ${device_id}. Using sensor name as fallback."
-        #         target_friendly_name="$sensor_friendly_name" # Fallback name
-        #     else
-        #         bashio::log.debug "Found Light Entity ID: ${light_entity_id}"
+            # --- Extract IP ---
+            local entity_ip
+            if [[ "$ip_source" == "state" ]]; then
+                entity_ip=$(jq -r '.state' <<< "$entity_state_json")
+            else # Default to attribute
+                entity_ip=$(jq -r ".attributes.\"${ip_attribute}\"" <<< "$entity_state_json")
+            fi
+            bashio::log.trace "Rule[${i}] Extracted IP: '${entity_ip}'"
 
-        #         # --- Get Light Entity's Friendly Name from States ---
-        #         bashio::log.debug "Looking up state for light ${light_entity_id}..."
-        #         # JQ query to find the state object for the light entity
-        #         light_state_json=$(jq -c --arg light_id "$light_entity_id" \
-        #             '.[] | select(.entity_id == $light_id)' \
-        #             <<< "$states_json")
+            # --- Validate extracted values ---
+            if [[ -z "$target_friendly_name" ]] || [[ "$target_friendly_name" == "null" ]]; then
+                 bashio::log.warning "Rule[${i}] Failed to extract a valid name for ${target_entity_id}. Skipping."
+                 continue
+            fi
+            if [[ -z "$entity_ip" ]] || [[ "$entity_ip" == "null" ]]; then
+                 bashio::log.warning "Rule[${i}] Failed to extract a valid IP for ${target_entity_id} (Source: ${ip_source}). Skipping."
+                 continue
+            fi
+             # Basic IP format check (optional but good)
+             if ! [[ "$entity_ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                 bashio::log.warning "Rule[${i}] Extracted IP '${entity_ip}' for ${target_entity_id} does not look like a valid IP address. Skipping."
+                 continue
+             fi
 
-        #         if [[ -z "$light_state_json" ]] || [[ "$light_state_json" == "null" ]]; then
-        #              bashio::log.warning "Could not find state for light entity ${light_entity_id}. Using sensor name as fallback."
-        #              target_friendly_name="$sensor_friendly_name" # Fallback name
-        #         else
-        #             # Extract friendly name with fallback to entity_id
-        #             target_friendly_name=$(jq -r '.attributes.friendly_name // .entity_id' <<< "$light_state_json")
-        #             bashio::log.debug "Using friendly name from light entity: '${target_friendly_name}'"
-        #         fi
-        #     fi
-        # fi
+            # --- Publish ---
+            bashio::log.info "Rule[${i}] Publishing mDNS for '${target_friendly_name}' (${target_entity_id}) -> ${entity_ip}"
+            publish_service "${IFACE}" "${target_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}" # TODO: Add TXT support later
 
-        # --- Publish using the determined name and IP ---
-        bashio::log.info "Publishing mDNS for '${sensor_friendly_name}' -> ${entity_ip}"
-        publish_service "${IFACE}" "${sensor_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}"
-        # bashio::log.info "Publishing mDNS for '${target_friendly_name}' -> ${entity_ip}"
-        # publish_service "${IFACE}" "${target_friendly_name}" "${service_type}" "${service_port}" "${entity_ip}"
+        done # End while loop processing entities for this rule
 
-        done # End of processing entities for one service rule
-        bashio::log.info "[MARKER 5] Finished STEP 3 processing loop."
-
-        # --- ADD MARKER 6 ---
         bashio::log.info "[MARKER 6] Reached end of FOR loop iteration for index ${i}."
 
     done # End of looping through service rules
 
-    # --- ADD MARKER 7 ---
     bashio::log.info "[MARKER 7] Exited FOR loop."
     bashio::log.debug "Update cycle finished. Sleeping for ${UPDATE_INTERVAL} seconds."
     sleep "${UPDATE_INTERVAL}"
