@@ -155,8 +155,17 @@ while true; do
         while IFS= read -r entity_info; do
             if [[ -z "$entity_info" ]]; then continue; fi
 
+            # --- ADD LOGGING ---
+            bashio::log.debug "Processing entity_info line: ${entity_info}"
+            # --- END LOGGING ---
+
             entity_name=$(echo "$entity_info" | jq -r '.name')
             entity_ip=$(echo "$entity_info" | jq -r '.ip')
+
+            # --- ADD MORE LOGGING ---
+            bashio::log.debug "Extracted Name: '${entity_name}', Extracted IP: '${entity_ip}'"
+            # --- END LOGGING ---
+
 
             if [[ -z "$entity_name" ]] || [[ -z "$entity_ip" ]]; then
                 bashio::log.warning "Could not extract name or IP for an entity in service '${service_name}'. Info: ${entity_info}"
