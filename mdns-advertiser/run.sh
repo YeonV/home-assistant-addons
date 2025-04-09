@@ -63,25 +63,23 @@ while true; do
         bashio::log.info "[MARKER 0] --- Processing Service Index: ${i} ---"
 
         # --- Read Service Config - REMOVED 'local' ---
-        service_name=$(bashio::config "services[${i}].name")
-        service_enabled_raw=$(bashio::config "services[${i}].enabled")
-        service_enabled="true" # Default
-        [[ "$service_enabled_raw" == "false" ]] && service_enabled="false"
-        service_type=$(bashio::config "services[${i}].service_type")
-        service_port=$(bashio::config "services[${i}].service_port")
-        ip_source=$(bashio::config "services[${i}].ip_source" "state")
-        ip_attribute=$(bashio::config "services[${i}].ip_attribute")
-        name_source=$(bashio::config "services[${i}].name_source" "attribute")
-        name_attribute=$(bashio::config "services[${i}].name_attribute" "friendly_name")
-        filter_state=$(bashio::config "services[${i}].filter_by_state")
-        filter_inverse_raw=$(bashio::config "services[${i}].filter_by_state_inverse")
-        filter_inverse="false" # Default
-        [[ "$filter_inverse_raw" == "true" ]] && filter_inverse="true"
-        ha_integration=$(bashio::config "services[${i}].ha_integration")
+        service_name="$(bashio::config "services[${i}].name")"
+        service_enabled_raw="$(bashio::config "services[${i}].enabled")"
+        service_enabled="true"; [[ "$service_enabled_raw" == "false" ]] && service_enabled="false"
+        service_type="$(bashio::config "services[${i}].service_type")"
+        service_port="$(bashio::config "services[${i}].service_port")"
+        ip_source="$(bashio::config "services[${i}].ip_source" "state")"
+        ip_attribute="$(bashio::config "services[${i}].ip_attribute")"
+        name_source="$(bashio::config "services[${i}].name_source" "attribute")"
+        name_attribute="$(bashio::config "services[${i}].name_attribute" "friendly_name")"
+        filter_state="$(bashio::config "services[${i}].filter_by_state")"
+        filter_inverse_raw="$(bashio::config "services[${i}].filter_by_state_inverse")"
+        filter_inverse="false"; [[ "$filter_inverse_raw" == "true" ]] && filter_inverse="true"
+        ha_integration="$(bashio::config "services[${i}].ha_integration")"
         [[ "$ha_integration" == "null" ]] && ha_integration=""
-        ha_domain=$(bashio::config "services[${i}].ha_domain")
+        ha_domain="$(bashio::config "services[${i}].ha_domain")"
         [[ "$ha_domain" == "null" ]] && ha_domain=""
-        ha_entity_pattern=$(bashio::config "services[${i}].ha_entity_pattern")
+        ha_entity_pattern="$(bashio::config "services[${i}].ha_entity_pattern")"
         [[ "$ha_entity_pattern" == "null" ]] && ha_entity_pattern=""
         use_default_pattern=false
         if [[ -z "$ha_integration" && -z "$ha_domain" && -z "$ha_entity_pattern" ]]; then
@@ -109,27 +107,41 @@ while true; do
         # --- Construct JQ Filter ---
         bashio::log.info "[MARKER 1] Constructing filter..."
         jq_filter='.' # Start with all entities
-        # Apply primary filter
+
+        # Apply primary filter (Integration, Domain, or Pattern)
         if [[ -n "$ha_integration" ]]; then
+            bashio::log.debug "Using filter: integration = ${ha_integration}"
             jq_filter+=" | select(.attributes.integration == \"${ha_integration}\")"
         elif [[ -n "$ha_domain" ]]; then
+            bashio::log.debug "Using filter: domain = ${ha_domain}."
             jq_filter+=" | select(.entity_id | startswith(\"${ha_domain}.\"))"
         elif [[ -n "$ha_entity_pattern" ]]; then
-            pattern_prefix="${ha_entity_pattern%\*}"
-            jq_filter+=" | select(.entity_id | startswith(\"${pattern_prefix}\"))"
+            bashio::log.debug "Using filter: entity pattern = ${ha_entity_pattern}"
+            # Use test() for regex matching
+            # Need to escape pattern for jq string literal and regex special chars if needed
+            # Basic escaping for common regex chars like '.' and '*'
+            escaped_pattern=$(echo "$ha_entity_pattern" | sed -e 's/[.^$*+?(){}|[\]\\]/\\&/g')
+            # Use test function for regex match - ^ makes it match from start
+            jq_filter+=" | select(.entity_id | test(\"^${escaped_pattern}\"))"
+        # No 'else' needed because default pattern is applied above if all were empty
         fi
+
         # Apply state filter
         if [[ -n "$filter_state" ]]; then
+            bashio::log.debug "Adding state filter: state ${filter_inverse == true && echo '!= ' || echo '== '}'${filter_state}'"
             op="=="; [[ "$filter_inverse" == "true" ]] && op="!="
             jq_filter+=" | select(.state ${op} \"${filter_state}\")"
         fi
+
         # Apply IP source check
         if [[ "$ip_source" == "state" ]]; then
+            # Ensure state is not null, empty, unavailable, or unknown
             jq_filter+=" | select(.state != null and .state != \"\" and .state != \"unavailable\" and .state != \"unknown\")"
         else
             jq_filter+=" | select(.attributes.\"${ip_attribute}\" != null)"
         fi
         bashio::log.debug "Constructed jq filter: ${jq_filter}"
+
 
         # --- Filter Entities ---
         bashio::log.info "[MARKER 2] Starting entity filtering..."
