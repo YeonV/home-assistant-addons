@@ -1,5 +1,5 @@
 name: mDNS Advertiser
-version: "0.0.25"
+version: "0.0.26"
 slug: mdns_advertiser
 description: Selectively advertises specified HA entities via mDNS
 url: "https://github.com/YeonV/home-assistant-addons/tree/main/mdns-advertiser"
@@ -11,7 +11,8 @@ init: false
 hassio_api: true
 homeassistant_api: true
 host_dbus: true
-hassio_role: default
+hassio_role: manager
+host_network: true
 image: ghcr.io/yeonv/{arch}-addon-mdns_advertiser
 options:
   interface: "eth0"
