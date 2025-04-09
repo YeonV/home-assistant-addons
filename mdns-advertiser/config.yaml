@@ -1,0 +1,49 @@
+name: mDNS Advertiser
+version: "0.0.1"
+slug: mdns_advertiser
+description: Selectively advertises HA services via mDNS on a specific interface
+url: "https://github.com/YeonV/home-assistant-addons/tree/main/mdns-advertiser" # Update with your repo URL
+arch:
+  - aarch64
+  - amd64
+  # - armhf
+  - armv7
+init: false
+hassio_api: true # Needed to get Supervisor token & access internal API
+hassio_role: default # Standard role sufficient for API access
+options:
+  interface: "eth0" # Default to main network interface
+  update_interval: 300 # Check every 5 minutes
+  log_level: "info"
+  # Define the services to advertise
+  services:
+    - name: "WLED Devices" # User-friendly name for this rule
+      enabled: true
+      ha_integration: "wled" # Use the integration domain
+      # Alternatively, filter by entity_id pattern or domain (e.g., light)
+      # ha_domain: "light"
+      # ha_entity_pattern: "light.wled_*"
+      service_type: "_wled._tcp" # The mDNS service type
+      service_port: 80 # The port the service runs on
+      # How to get the IP? Usually an attribute
+      ip_attribute: "ip_address"
+      # Optional: Additional TXT record fields (if needed)
+      # txt_records:
+      #   - key: "version"
+      #     attribute: "version_attribute_name" # Get value from this HA attribute
+schema:
+  interface: str
+  update_interval: int(60,)
+  log_level: list(trace|debug|info|notice|warning|error|fatal)
+  services:
+    - name: str
+      enabled: bool
+      ha_integration: str? # Optional, use one filter type
+      ha_domain: str?      # Optional
+      ha_entity_pattern: str? # Optional
+      service_type: str
+      service_port: int(1,65535)
+      ip_attribute: str
+      # txt_records: # Optional complex structure
+      #   - key: str
+      #     attribute: str
