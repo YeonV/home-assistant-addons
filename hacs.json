@@ -1,0 +1,7 @@
+{
+    "name": "VPD Table Card",
+    "content_in_root": false,
+    "filename": "cards/vpd/vpd-card.js",
+    "render_readme": true,
+    "domains": ["sensor"]
+  }
