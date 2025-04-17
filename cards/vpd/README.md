@@ -57,6 +57,9 @@ Add the card to your Lovelace dashboard like any other card.
 
 **UI Configuration:**
 
+![image](https://github.com/user-attachments/assets/dec6537e-8150-408c-901c-14c6aa63f94d)
+
+
 The card supports configuration through the Lovelace UI editor.
 
 | Name          | Type    | Required | Description                                                                 | Default                  |
