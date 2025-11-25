@@ -1,5 +1,6 @@
 pkgconfig>=1.5.5
 setuptools>=69.0.3
 wheel>=0.36.2
-numpy~=1.23
+numpy>=2.0.0,<3.0.0
 python-mbedtls~=2.9.0
+ledfx==2.1.2
