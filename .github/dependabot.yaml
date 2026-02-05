@@ -5,3 +5,13 @@ updates:
     schedule:
       interval: daily
       time: "06:00"
+  - package-ecosystem: "pip"
+    directory: "/ledfx-beta"
+    schedule:
+      interval: daily
+      time: "06:00"
+  - package-ecosystem: "pip"
+    directory: "/ledfx-beta-vban"
+    schedule:
+      interval: daily
+      time: "06:00"

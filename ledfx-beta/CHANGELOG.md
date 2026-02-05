@@ -5,3 +5,7 @@
 ![logo192](https://user-images.githubusercontent.com/28861537/119760144-c5126680-bea9-11eb-991a-c08eedbc5929.png)
 
 
+## 2.1.4
+
+- Update to LedFx 2.0.104
+- Include python-mbedtls for hue device support
