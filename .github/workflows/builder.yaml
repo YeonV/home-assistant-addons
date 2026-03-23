@@ -24,7 +24,7 @@ jobs:
           sed -i 's/\bledfx==.*\b/ledfx==${{ github.event.inputs.version }}/' ./ledfx-beta/requirements.txt 
         # TODO: remove v from input.version. it will come as v2.0.62, but we need 2.0.62
         
-      - uses: EndBug/add-and-commit@v9
+      - uses: EndBug/add-and-commit@v10
   init:
     runs-on: ubuntu-latest
     needs: version
