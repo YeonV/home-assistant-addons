@@ -34,10 +34,10 @@ RUN \
     --no-cache-dir -r /tmp/requirements.txt \
     # && pip install \
     # --no-cache-dir git+https://github.com/LedFx/LedFx \
-    \
-    && rm -rf /usr/local/lib/python3.12/site-packages/ledfx_frontend \
-    && curl -L --max-redirs 10 -o ledfx_frontend_hass.zip https://github.com/YeonV/LedFx-Frontend-v2/releases/latest/download/ledfx_frontend_hass.zip \
-    && unzip ledfx_frontend_hass.zip && cp -r ledfx_frontend_hass /usr/local/lib/python3.12/site-packages/ledfx_frontend \
+    # \
+    # && rm -rf /usr/local/lib/python3.12/site-packages/ledfx_frontend \
+    # && curl -L --max-redirs 10 -o ledfx_frontend_hass.zip https://github.com/YeonV/LedFx-Frontend-v2/releases/latest/download/ledfx_frontend_hass.zip \
+    # && unzip ledfx_frontend_hass.zip && cp -r ledfx_frontend_hass /usr/local/lib/python3.12/site-packages/ledfx_frontend \
     \
     && find /usr/local/lib/python3.12/ -type d -name tests -depth -exec rm -rf {} \; \
     && find /usr/local/lib/python3.12/ -type d -name test -depth -exec rm -rf {} \; \
