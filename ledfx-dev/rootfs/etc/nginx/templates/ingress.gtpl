@@ -7,7 +7,7 @@ server {
         allow   172.30.32.2;
         allow   127.0.0.1;
         deny    all;
-        proxy_pass http://127.0.0.1:8888/;
+        proxy_pass http://127.0.0.1:8888;
 
         # Rewrite absolute paths in responses
         sub_filter_once off;
