@@ -3,7 +3,7 @@ server {
 
     include /etc/nginx/includes/server_params.conf;
     include /etc/nginx/includes/proxy_params.conf;
-    location {{ .ingress_entry }}/ {
+    location / {
         allow   172.30.32.2;
         allow   127.0.0.1;
         deny    all;
@@ -15,12 +15,5 @@ server {
         sub_filter 'href="/' 'href="{{ .ingress_entry }}/';
         sub_filter 'src="/' 'src="{{ .ingress_entry }}/';
         sub_filter 'url(/' 'url({{ .ingress_entry }}/';
-    }
-    location / {
-        allow   172.30.32.2;
-        allow   127.0.0.1;
-        deny    all;
-
-        return 301 {{ .ingress_entry }}/;
     }
 }
