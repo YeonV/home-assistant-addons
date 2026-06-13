@@ -8,7 +8,7 @@ server {
         allow   172.30.32.2;
         deny    all;
 
-        proxy_pass http://backend/;
+        proxy_pass http://127.0.0.1:8888/;
 
         # Rewrite absolute paths in responses
         sub_filter_once off;
@@ -16,11 +16,11 @@ server {
         sub_filter 'href="/' 'href="{{ .ingress_entry }}/';
         sub_filter 'src="/' 'src="{{ .ingress_entry }}/';
         sub_filter 'url(/' 'url({{ .ingress_entry }}/';
-        
+
     location / {
         allow   172.30.32.2;
         deny    all;
 
-        proxy_pass http://backend{{ .ingress_entry }}/;
+        return 301 {{ .ingress_entry }}/
     }
 }
