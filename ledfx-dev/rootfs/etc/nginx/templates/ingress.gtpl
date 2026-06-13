@@ -15,6 +15,8 @@ server {
         sub_filter 'href="/' 'href="{{ .ingress_entry }}/';
         sub_filter 'src="/' 'src="{{ .ingress_entry }}/';
         sub_filter 'url(/' 'url({{ .ingress_entry }}/';
-        sub_filter "'url':'/" "'url':'{{ .ingress_entry }}/";
+        sub_filter '\'url\':\'/' '\'url\':\'{{ .ingress_entry }}/';
+        sub_filter '/api' '{{ .ingress_entry }}/api';
+        sub_filter '/static/' '{{ .ingress_entry }}/static/';
     }
 }
