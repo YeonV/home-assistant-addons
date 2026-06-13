@@ -5,6 +5,7 @@ server {
     include /etc/nginx/includes/proxy_params.conf;
     location {{ .ingress_entry }}/ {
         allow   172.30.32.2;
+        allow   127.0.0.1;
         deny    all;
         proxy_pass http://127.0.0.1:8888/;
 
@@ -17,6 +18,7 @@ server {
     }
     location / {
         allow   172.30.32.2;
+        allow   127.0.0.1;
         deny    all;
 
         return 301 {{ .ingress_entry }}/;
