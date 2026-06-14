@@ -14,6 +14,8 @@ bashio::var.json \
         -template /etc/nginx/templates/ingress.gtpl \
         -out /etc/nginx/servers/ingress.conf
 
+sed -i "s#n.p+\"/api#n.p+\"api#g" /etc/nginx/servers/ingress.conf
+
 # Generate direct access configuration, if enabled.
 if bashio::var.has_value "$(bashio::addon.port 80)"; then
     bashio::config.require.ssl
