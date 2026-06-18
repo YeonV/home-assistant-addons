@@ -1,4 +1,4 @@
-pkgconfig>=1.5.5
+pkgconfig>=1.6.0
 setuptools>=69.0.3
 wheel>=0.36.2
 numpy>=2.0.0,<3.0.0
